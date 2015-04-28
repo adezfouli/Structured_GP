@@ -9,7 +9,7 @@ class ExperimentRunner:
     def get_configs():
         configs = []
         expr_names = ExperimentRunner.get_experiments()
-        methods = ['full', 'mix1', 'mix2']
+        methods = ['full']
         sparse_factor = [1.0, 0.8, 0.6, 0.4, 0.2, 0.1]
         run_ids = [1, 2, 3, 4, 5]
         for e in expr_names:
@@ -70,9 +70,9 @@ def run_config_serial(config):
 
 if __name__ == '__main__':
     pass
-    # n_process = 64
-    # p = Pool(n_process)
-    # p.map(run_config, ExperimentRunner.get_configs())
+    n_process = 64
+    p = Pool(n_process)
+    p.map(run_config, ExperimentRunner.get_configs())
     # run_config_serial(ExperimentRunner.get_configs())
     # ExperimentRunner.boston_experiment()
     # ExperimentRunner.wisconsin_breast_experiment()
