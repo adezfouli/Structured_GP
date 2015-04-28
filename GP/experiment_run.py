@@ -70,7 +70,7 @@ def run_config_serial(config):
 
 if __name__ == '__main__':
     pass
-    n_process = 64
+    n_process = 40
     p = Pool(n_process)
     p.map(run_config, ExperimentRunner.get_configs())
     # run_config_serial(ExperimentRunner.get_configs())
