@@ -37,8 +37,8 @@ chmod +x ./run_job.sh
     out.write(job_string)
     out.close()
     time.sleep(2.0)
-    p = Popen(['qsub', '../qsub/auto_run.pbs'], stdout=PIPE, stdin=PIPE, stderr=STDOUT)
-    output = p.communicate()[0]
+    p = Popen(['qsub'], stdout=PIPE, stdin=PIPE, stderr=STDOUT)
+    output = p.communicate(job_string)[0]
     print output
     print job_string
 
