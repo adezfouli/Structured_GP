@@ -33,13 +33,17 @@ cd /home/z3510738/code/savigp/clust/
 chmod +x ./run_job.sh
 %s""" % (job_name, walltime, processors, job_name, job_name, command)
 #    check_dir_exists('../qsub/')
-    out = open('../qsub/auto_run.pbs', 'w')
-    out.write(job_string)
-    out.close()
-    time.sleep(2.0)
-    p = Popen(['qsub'], stdout=PIPE, stdin=PIPE, stderr=STDOUT)
-    output = p.communicate(job_string)[0]
-    print output
+#     out = open('../qsub/auto_run.pbs', 'w')
+#     out.write(job_string)
+#     out.close()
+#     time.sleep(2.0)
+#     p = Popen(['qsub'], stdout=PIPE, stdin=PIPE, stderr=STDOUT)
+#     output = p.communicate(job_string)[0]
+    output, input = popen2('qsub')
+    input.write(job_string)
+    input.close()
+
+    print output.read()
     print job_string
 
 
