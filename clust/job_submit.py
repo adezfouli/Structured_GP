@@ -13,7 +13,7 @@ for i in range(0, many):
 
     # Open a pipe to the qsub command.
 
-    name = 'cancer_' + ''.join(random.choice(string.ascii_uppercase) for _ in range(3))
+    name = 'bost_' + ''.join(random.choice(string.ascii_uppercase) for _ in range(3))
     # Customize your options here
     job_name = "adez_%s" %(name)
     walltime = "20:00:00"
@@ -33,17 +33,11 @@ cd /home/z3510738/code/savigp/clust/
 chmod +x ./run_job.sh
 %s""" % (job_name, walltime, processors, job_name, job_name, command)
 #    check_dir_exists('../qsub/')
-#     out = open('../qsub/auto_run.pbs', 'w')
-#     out.write(job_string)
-#     out.close()
-#     time.sleep(2.0)
-#     p = Popen(['qsub'], stdout=PIPE, stdin=PIPE, stderr=STDOUT)
-#     output = p.communicate(job_string)[0]
-    output, input = popen2('qsub')
-    input.write(job_string)
-    input.close()
-
-    print output.read()
+    out = open('../qsub/auto_run.pbs', 'w')
+    out.write(job_string)
+    out.close()
+    time.sleep(2.0)
+    p = Popen(['qsub', '../qsub/auto_run.pbs'], stdout=PIPE, stdin=PIPE, stderr=STDOUT)
+    output = p.communicate()[0]
+    print output
     print job_string
-
-
