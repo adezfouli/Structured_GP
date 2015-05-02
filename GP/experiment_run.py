@@ -83,7 +83,7 @@ if __name__ == '__main__':
     logger = Experiments.get_logger('general_' + Experiments.get_ID(), logging.DEBUG)
     n_process = 20
     p = Pool(n_process)
-    # p.map(run_config, ExperimentRunner.get_configs())
+    p.map(run_config, ExperimentRunner.get_configs())
     # run_config_serial(ExperimentRunner.get_configs())
     # ExperimentRunner.boston_experiment()
     # ExperimentRunner.wisconsin_breast_experiment()
