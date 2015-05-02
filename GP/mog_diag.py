@@ -76,11 +76,14 @@ class MoG_Diag(MoG):
 
     def C_m_C(self, j, k, l):
         return (self.invC_klj_Sk[k, l, j] -
-                self.invC_klj_Sk[k, l, j] * (self.m[k, j, :] - self.m[l, j, :]) *
-                (self.m[k, j, :] - self.m[l, j, :]) * self.invC_klj_Sk[k, l, j])
+                np.square(self.invC_klj_Sk[k, l, j] * (self.m[k, j, :] - self.m[l, j, :])) / self.s[k,j])
 
     def aSa(self, a, j):
         return mdot(self.s[:,j,:], (a ** 2))
+
+    def aSkja(self, a, k, j):
+        # return mdot(self.s[k, j, :], (a ** 2))
+        return np.diagonal(mdot(a, np.diag(self.s[k,j,:]), a.T))
 
     def mmTS(self, k, j):
         return mdot(self.m[k,j, np.newaxis].T, self.m[k,j, np.newaxis]) + np.diag(self.s[k,j])
@@ -92,7 +95,7 @@ class MoG_Diag(MoG):
         return np.diagonal(S) * self.s[k,j,:].flatten()
 
     def Sa(self, a, k, j):
-        return a * self.s[k,j,:]
+        return mdot(np.diag(self.s[k,j]), a)
 
     def _update(self):
         self.parameters = self.get_parameters()

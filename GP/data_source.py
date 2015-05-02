@@ -1,6 +1,7 @@
 from GPy.util import datasets
 import pandas
 from pandas.util.testing import DataFrame
+from ExtRBF import ExtRBF
 
 __author__ = 'AT'
 
@@ -21,8 +22,8 @@ class DataSource:
         X = np.random.uniform(low=-1.0, high=1.0, size=(num_samples, num_in))
         # X = preprocessing.scale(X)
         X.sort(axis=0)
-        rbf = GPy.kern.RBF(num_in, variance=0.5,
-                           lengthscale=np.array(np.random.uniform(low=0.1, high=0.5, size=num_in)), ARD=True)
+        rbf = ExtRBF(num_in, variance=0.5,
+                           lengthscale=np.array(np.random.uniform(low=0.1, high=3.0, size=num_in)), ARD=True)
         white = GPy.kern.White(num_in, variance=noise)
         kernel = rbf + white
         K = kernel.K(X)
@@ -72,14 +73,29 @@ class DataSource:
 
     @staticmethod
     def USPS_data():
-        train = pandas.read_csv('data/USPS/train.csv', header=None)
-        X_train = train.ix[:, 1:256]
-        Y_train = train.ix[:, 0]
+        def label_to_num(x):
+            return  (x[:, 1] + x[:, 2] * 2)[:, np.newaxis]
 
-        test = pandas.read_csv('data/USPS/test.csv', header=None)
-        X_test = test.ix[:, 1:256]
-        Y_test = test.ix[:, 0]
-        return X_train, Y_train[:, np.newaxis], X_test, Y_test[:, np.newaxis]
+        data = []
+        for i in range(1, 6):
+            train = pandas.read_csv('data/USPS/train_' + str(i) + '.csv', header=None)
+            test = pandas.read_csv('data/USPS/test_' + str(i) + '.csv', header=None)
+            # data.append({
+            #     'train_Y': label_to_num(train.ix[:, 0:2].values),
+            #     'train_X': train.ix[:, 3:].values,
+            #     'test_Y': label_to_num(test.ix[:, 0:2].values),
+            #     'test_X': test.ix[:, 3:].values,
+            #     'id': i
+            # })
+            data.append({
+                'train_Y': train.ix[:, 0:2].values,
+                'train_X': train.ix[:, 3:].values,
+                'test_Y': test.ix[:, 0:2].values,
+                'test_X': test.ix[:, 3:].values,
+                'id': i
+            })
+
+        return data
 
 
     @staticmethod
