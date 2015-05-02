@@ -13,7 +13,7 @@ for i in range(0, many):
 
     # Open a pipe to the qsub command.
 
-    name = 'bost_' + ''.join(random.choice(string.ascii_uppercase) for _ in range(3))
+    name = 'USPS_' + ''.join(random.choice(string.ascii_uppercase) for _ in range(3))
     # Customize your options here
     job_name = "adez_%s" %(name)
     walltime = "20:00:00"
