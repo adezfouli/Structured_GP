@@ -29,8 +29,8 @@ class ExperimentRunner:
     @staticmethod
     def get_experiments():
         # return [Experiments.boston_data.__name__]
-        # return [Experiments.wisconsin_breast_cancer_data.__name__]
-        return [Experiments.USPS_data.__name__]
+        return [Experiments.wisconsin_breast_cancer_data.__name__]
+        # return [Experiments.USPS_data.__name__]
 
     @staticmethod
     def get_log_level():
@@ -86,12 +86,12 @@ def run_config_serial(config):
 
 if __name__ == '__main__':
     logger = Experiments.get_logger('general_' + Experiments.get_ID(), logging.DEBUG)
-    # n_process = 2
-    # p = Pool(n_process)
-    # p.map(run_config, ExperimentRunner.get_configs())
+    n_process = 15
+    p = Pool(n_process)
+    p.map(run_config, ExperimentRunner.get_configs())
     # run_config_serial(ExperimentRunner.get_configs())
     # ExperimentRunner.boston_experiment()
     # ExperimentRunner.wisconsin_breast_experiment()
     # ExperimentRunner.USPS_experiment()
-    ExperimentRunner.mining_experiment()
-    ExperimentRunner.plot()
+    # ExperimentRunner.mining_experiment()
+    # ExperimentRunner.plot()
