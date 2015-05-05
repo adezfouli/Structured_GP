@@ -28,9 +28,9 @@ class ExperimentRunner:
 
     @staticmethod
     def get_experiments():
-        return [Experiments.boston_data.__name__]
+        # return [Experiments.boston_data.__name__]
         # return [Experiments.wisconsin_breast_cancer_data.__name__]
-        # return [Experiments.USPS_data.__name__]
+        return [Experiments.USPS_data.__name__]
 
     @staticmethod
     def get_log_level():
