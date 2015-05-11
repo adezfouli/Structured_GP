@@ -44,11 +44,11 @@ class ExperimentRunner:
 
     @staticmethod
     def boston_experiment():
-        Experiments.boston_data({'method': 'full', 'sparse_factor': 0.8, 'run_id': 3, 'log_level': logging.DEBUG})
+        Experiments.boston_data({'method': 'mix2', 'sparse_factor': 0.8, 'run_id': 3, 'log_level': logging.DEBUG})
 
     @staticmethod
     def wisconsin_breast_experiment():
-        Experiments.wisconsin_breast_cancer_data({'method': 'full', 'sparse_factor': 1.0, 'run_id': 1, 'log_level': logging.DEBUG})
+        Experiments.wisconsin_breast_cancer_data({'method': 'mix1', 'sparse_factor': 1.0, 'run_id': 1, 'log_level': logging.DEBUG})
 
     @staticmethod
     def abalone_experiment():
@@ -60,14 +60,14 @@ class ExperimentRunner:
 
     @staticmethod
     def mining_experiment():
-        Experiments.mining_data({'method': 'full', 'sparse_factor': 1.0, 'run_id': 1, 'log_level': logging.DEBUG})
+        Experiments.mining_data({'method': 'mix1', 'sparse_factor': 1.0, 'run_id': 1, 'log_level': logging.DEBUG})
 
     @staticmethod
     def plot():
         # PlotOutput.plot_output_all('boston', Experiments.get_output_path(),
         #                            lambda x: 'experiment' in x.keys() and x['experiment']== 'breast_cancer', False)
         PlotOutput.plot_output_all('boston', Experiments.get_output_path(),
-                                   lambda x: x['method'] == 'full', False)
+                                   lambda x: x['method'] == 'mix2', False)
         #
         # PlotOutput.plot_output_all('boston', Experiments.get_output_path(),
         #                            lambda x: x['c'] == '1' and (x['m'] in ['mix2', 'mix1', 'full', 'gp']), False)
@@ -99,3 +99,4 @@ if __name__ == '__main__':
     # ExperimentRunner.USPS_experiment()
     # ExperimentRunner.mining_experiment()
     # ExperimentRunner.plot()
+    ExperimentRunner.abalone_experiment()
