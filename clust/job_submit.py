@@ -16,7 +16,7 @@ for i in range(0, many):
     name = 'USPS_' + ''.join(random.choice(string.ascii_uppercase) for _ in range(3))
     # Customize your olsptions here
     job_name = "adez_%s" %(name)
-    walltime = "20:00:00"
+    walltime = "71:00:00"
     processors = "nodes=1:ppn=48"
     command = "./run_job.sh %s" % (str(i))
     job_string = """#!/bin/bash
