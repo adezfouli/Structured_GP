@@ -13,7 +13,7 @@ for i in range(0, many):
 
     # Open a pipe to the qsub command.
 
-    name = 'boston_' + ''.join(random.choice(string.ascii_uppercase) for _ in range(3))
+    name = 'cancer_' + ''.join(random.choice(string.ascii_uppercase) for _ in range(3))
     # Customize your olsptions here
     job_name = "adez_%s" %(name)
     walltime = "71:00:00"
