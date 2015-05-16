@@ -38,8 +38,8 @@ class ExperimentRunner:
         # uncomment to run desired experiment
         # return [Experiments.boston_data.__name__]
         # return [Experiments.wisconsin_breast_cancer_data.__name__]
-        return [Experiments.USPS_data.__name__]
-        # return [Experiments.creep_data.__name__]
+        # return [Experiments.USPS_data.__name__]
+        return [Experiments.creep_data.__name__]
         # return [Experiments.abalone_data.__name__]
 
 
@@ -122,7 +122,7 @@ def run_config(config):
 if __name__ == '__main__':
     logger = Experiments.get_logger('general_' + Experiments.get_ID(), logging.DEBUG)
 
-    ExperimentRunner.run_parallel(10)
+    ExperimentRunner.run_parallel(20)
     # run_config_serial(ExperimentRunner.get_configs())
 
     # runs an individual configuration
