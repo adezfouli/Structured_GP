@@ -19,7 +19,7 @@ from GPy.util.linalg import mdot
 import numpy as np
 from optimizer import *
 from savigp import Configuration
-from likelihood import MultivariateGaussian, UnivariateGaussian
+from likelihood import UnivariateGaussian
 from grad_checker import GradChecker
 from plot import plot_fit
 from util import chol_grad, jitchol, bcolors
@@ -35,11 +35,11 @@ class SAVIGP_Test:
         num_process = -1
         ll = None
         gaussian_sigma = None
-        if likelihood == 'multi_Gaussian':
-            gaussian_sigma = 0.5
-            num_process = 3
-            cov = np.eye(num_process) * gaussian_sigma
-            ll = MultivariateGaussian(np.array(cov))
+        # if likelihood == 'multi_Gaussian':
+        #     gaussian_sigma = 0.5
+        #     num_process = 3
+        #     cov = np.eye(num_process) * gaussian_sigma
+        #     ll = MultivariateGaussian(np.array(cov))
         if likelihood == 'univariate_Gaussian':
             gaussian_sigma = 0.5
             num_process = 1
@@ -231,7 +231,7 @@ class SAVIGP_Test:
 
         #number of inducing points
         num_inducing = int(Xtrain.shape[0] * sparsify_factor)
-        num_samples = Experiments.get_number_samples()
+        num_samples = 10000
         cond_ll = UnivariateGaussian(np.array(gaussian_sigma))
 
         n1, _ = Experiments.run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel1, method,

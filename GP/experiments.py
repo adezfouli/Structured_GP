@@ -1,4 +1,5 @@
 import logging
+import math
 from ExtRBF import ExtRBF
 from data_transformation import MeanTransformation, IdentityTransformation, MinTransformation
 from savigp import SAVIGP
@@ -41,10 +42,6 @@ class Experiments:
         logger.addHandler(fh)
         logger.addHandler(ch)
         return logger
-
-    @staticmethod
-    def get_number_samples():
-        return 10000
 
     @staticmethod
     def export_train(name, Xtrain, Ytrain, export_X=False):
@@ -98,7 +95,7 @@ class Experiments:
         header =  ['Ytrue%d,' % (j) for j in range(Ytrue.shape[1])] + \
             ['Ypred_%s_%d,' % (m, j) for m in pred_names for j in range(Ypred[0].shape[1])] + \
             ['Yvar_pred_%s_%d,' % (m, j) for m in pred_names for j in range(Yvar_pred[0].shape[1])] + \
-            ['nlpd']
+            ['nlpd,']
 
 
         if export_X:
@@ -128,7 +125,8 @@ class Experiments:
 
     @staticmethod
     def run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, run_id, num_inducing, num_samples,
-                  sparsify_factor, to_optimize, trans_class, random_Z, logging_level, export_X):
+                  sparsify_factor, to_optimize, trans_class, random_Z, logging_level, export_X,
+                  latent_noise=0.001, opt_per_iter=40, max_iter=200):
 
         folder_name = name + '_' + Experiments.get_ID()
         logger = Experiments.get_logger(folder_name, logging_level)
@@ -139,9 +137,6 @@ class Experiments:
         Xtest = transformer.transform_X(Xtest)
 
         opt_max_fun_evals = None
-        opt_per_iter = 40
-        max_iter = 10000
-        latent_noise = 0.001
         xtol = 1e-3
         total_time = None
         timer_per_iter = None
@@ -224,16 +219,15 @@ class Experiments:
         kernel = Experiments.get_kernels(Xtrain.shape[1], 1, True)
         # gaussian_sigma = np.var(Ytrain)/4 + 1e-4
         gaussian_sigma = 1.0
-
         # number of inducing points
         num_inducing = int(Xtrain.shape[0] * sparsify_factor)
-        num_samples = Experiments.get_number_samples()
         cond_ll = UnivariateGaussian(np.array(gaussian_sigma))
+        num_samples = 2000
 
         names.append(
             Experiments.run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, d['id'], num_inducing,
-                                  num_samples, sparsify_factor, ['hyp', 'mog', 'll'], MeanTransformation, True,
-                                  config['log_level'], False))
+                                  num_samples, sparsify_factor, ['hyp', 'mog', 'll'], MeanTransformation, False,
+                                  config['log_level'], False, latent_noise=0.001, opt_per_iter=50, max_iter=200))
         return names
 
     @staticmethod
@@ -253,13 +247,13 @@ class Experiments:
 
         # number of inducing points
         num_inducing = int(Xtrain.shape[0] * sparsify_factor)
-        num_samples = Experiments.get_number_samples()
+        num_samples = 2000
         cond_ll = LogisticLL()
 
         names.append(
             Experiments.run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, d['id'], num_inducing,
-                                  num_samples, sparsify_factor, ['mog', 'hyp'], IdentityTransformation, True,
-                                  config['log_level'], False))
+                                  num_samples, sparsify_factor, ['mog', 'hyp'], IdentityTransformation, False,
+                                  config['log_level'], False, latent_noise=0.001, opt_per_iter=50, max_iter=200))
         return names
 
 
@@ -280,13 +274,15 @@ class Experiments:
 
         # number of inducing points
         num_inducing = int(Xtrain.shape[0] * sparsify_factor)
-        num_samples = Experiments.get_number_samples()
-        cond_ll = LogGaussianCox(1)
+        num_samples = 2000
+        cond_ll = LogGaussianCox(math.log(191./811))
+        kernel[0].variance= 1.0
+        kernel[0].lengthscale= 13516.
 
         names.append(
             Experiments.run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, d['id'], num_inducing,
-                                  num_samples, sparsify_factor, ['mog', 'll', 'hyp'], IdentityTransformation, True,
-                                  config['log_level'], True))
+                                  num_samples, sparsify_factor, ['mog'], IdentityTransformation, False,
+                                  config['log_level'], True, latent_noise=0.001, opt_per_iter=15000, max_iter=1))
         return names
 
 
@@ -307,13 +303,13 @@ class Experiments:
 
         # number of inducing points
         num_inducing = int(Xtrain.shape[0] * sparsify_factor)
-        num_samples = Experiments.get_number_samples()
+        num_samples = 2000
         cond_ll = SoftmaxLL(3)
 
         names.append(
             Experiments.run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, d['id'], num_inducing,
-                                  num_samples, sparsify_factor, ['mog', 'hyp'], IdentityTransformation, True,
-                                  config['log_level'], False))
+                                  num_samples, sparsify_factor, ['mog', 'hyp'], IdentityTransformation, False,
+                                  config['log_level'], False,  latent_noise=0.001, opt_per_iter=50, max_iter=200))
 
 
     @staticmethod
@@ -333,7 +329,7 @@ class Experiments:
 
         # number of inducing points
         num_inducing = int(Xtrain.shape[0] * sparsify_factor)
-        num_samples = Experiments.get_number_samples()
+        num_samples = 2000
 
         cond_ll = WarpLL(np.array([-2.0485, 1.7991, 1.5814]),
                          np.array([2.7421, 0.9426, 1.7804]),
@@ -342,8 +338,8 @@ class Experiments:
 
         names.append(
             Experiments.run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, d['id'], num_inducing,
-                                  num_samples, sparsify_factor, ['mog', 'hyp', 'll'], MinTransformation, True,
-                                  config['log_level'], False))
+                                  num_samples, sparsify_factor, ['mog', 'hyp', 'll'], MinTransformation, False,
+                                  config['log_level'], False, latent_noise=0.001, opt_per_iter=50, max_iter=200))
 
 
     @staticmethod
@@ -367,7 +363,7 @@ class Experiments:
 
         # number of inducing points
         num_inducing = int(Xtrain.shape[0] * sparsify_factor)
-        num_samples = Experiments.get_number_samples()
+        num_samples = 2000
 
         cond_ll = WarpLL(np.array([3.8715, 3.8898, 2.8759]),
                          np.array([1.5925, -1.3360, -2.0289]),
@@ -376,8 +372,8 @@ class Experiments:
 
         names.append(
             Experiments.run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, d['id'], num_inducing,
-                                  num_samples, sparsify_factor, ['mog', 'hyp', 'll'], MinTransformation, True,
-                                  config['log_level'], False))
+                                  num_samples, sparsify_factor, ['mog', 'hyp', 'll'], MinTransformation, False,
+                                  config['log_level'], False, latent_noise=0.001, opt_per_iter=50, max_iter=200))
 
     @staticmethod
     def get_kernels(input_dim, num_latent_proc, ARD):

@@ -9,6 +9,7 @@ from pandas.util.testing import DataFrame, Series
 from likelihood import SoftmaxLL, LogisticLL, UnivariateGaussian, LogGaussianCox, WarpLL
 from util import check_dir_exists
 import numpy as np
+import matplotlib.pyplot as plt
 
 class PlotOutput:
 
@@ -36,32 +37,35 @@ class PlotOutput:
                 Ypred = np.array([data_test['Ypred__%d' % (d)] for d in range(dim)])
                 Ytrue = np.array([data_test['Ytrue%d' % (d)] for d in range(dim)])
                 Yvar = np.array([data_test['Yvar_pred__%d' % (d)] for d in range(dim)])
-                NLPD = np.array(data_test['nlpd'])
 
                 if not (PlotOutput.config_to_str(data_config) in graph_n.keys()):
                     graph_n[PlotOutput.config_to_str(data_config)] = 0
                 graph_n[PlotOutput.config_to_str(data_config)] += 1
 
                 if data_config['ll'] in [UnivariateGaussian.__name__, WarpLL.__name__]:
+                    NLPD = np.array(data_test['nlpd'])
                     PlotOutput.add_to_list(graphs['SSE'], PlotOutput.config_to_str(data_config),
                                            (Ypred[0] - Ytrue[0])**2 / ((Y_mean - Ytrue[0]) **2).mean())
                     PlotOutput.add_to_list(graphs['NLPD'], PlotOutput.config_to_str(data_config), NLPD)
 
                 if data_config['ll'] in [LogisticLL.__name__]:
+                    NLPD = np.array(data_test['nlpd'])
                     PlotOutput.add_to_list(graphs['ER'], PlotOutput.config_to_str(data_config), np.array([(((Ypred[0] > 0.5) & (Ytrue[0] == -1))
                                                                  | ((Ypred[0] < 0.5) & (Ytrue[0] == 1))
                                                                  ).mean()]))
                     PlotOutput.add_to_list(graphs['NLPD'], PlotOutput.config_to_str(data_config), NLPD)
 
                 if data_config['ll'] in [SoftmaxLL.__name__]:
+                    NLPD = np.array(data_test['nlpd'])
                     PlotOutput.add_to_list(graphs['ER'], PlotOutput.config_to_str(data_config), np.array(
                         [(np.argmax(Ytrue, axis=0) != np.argmax(Ypred, axis=0)).mean()]))
                     PlotOutput.add_to_list(graphs['NLPD'], PlotOutput.config_to_str(data_config), NLPD)
 
                 if data_config['ll'] in [LogGaussianCox.__name__]:
                     X0 = np.array([data_test['X0']])
+
                     PlotOutput.add_to_list(graphs['intensity'], PlotOutput.config_to_str(data_config),
-                                           np.array([X0[0,:]/365+1851.2026, Ypred[0,:]]).T)
+                                           np.array([X0[0,:]/365+1851.2026, Ypred[0,:], Yvar[0,:]] ).T)
 
         for n, g in graphs.iteritems():
             if g:
@@ -83,9 +87,15 @@ class PlotOutput:
                     ax.legend(patches, labels, loc='lower center')
                 if n in ['intensity']:
                     X = g.values()[0][:, 0]
-                    g= DataFrame(dict([(k,Series(v[:, 1])) for k,v in g.iteritems()]))
-                    g['X'] = X
-                    g.plot(x='X',kind='line')
+                    # g= DataFrame(dict([(k,Series(v[:, 1])) for k,v in g.iteritems()]))
+                    plt.figure()
+                    color = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
+                    c = 0
+                    for k,v in g.iteritems():
+                        plt.plot(X, v[:, 1], hold=True, color=color[c], label=k)
+                        plt.fill_between(X, v[:, 1] - 2 * np.sqrt(v[:, 2]), v[:, 1] + 2 * np.sqrt(v[:, 2]), alpha=0.2, facecolor=color[c])
+                        c += 1
+                    plt.legend(loc='upper center')
 
                 if export_pdf:
                     check_dir_exists(infile_path + name + '/graphs/')
@@ -107,6 +117,15 @@ class PlotOutput:
     def plot_output_all(name, path, filter, export_pdf):
         dir = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
         PlotOutput.plot_output(name, path, dir, filter, export_pdf)
+
+
+    @staticmethod
+    def find_all(path, filter):
+        dir = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
+        for m in dir:
+            data_config = PlotOutput.read_config(path + m + '/' + 'config_' + '.csv')
+            if filter is None or filter(data_config):
+                print m
 
     @staticmethod
     def read_config(path):

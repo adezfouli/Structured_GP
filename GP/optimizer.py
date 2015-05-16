@@ -1,3 +1,5 @@
+__author__ = 'AT'
+
 import math
 from GPy.util.linalg import mdot
 # import nlopt
@@ -6,9 +8,9 @@ from scipy.linalg import inv
 from scipy.optimize import fmin_l_bfgs_b, minimize, fmin_cg
 import numpy as np
 import time
+from util import JitChol
 from savigp import Configuration
 
-__author__ = 'AT'
 
 
 class Optimizer:
@@ -51,14 +53,28 @@ class Optimizer:
     @staticmethod
     def get_f_f_grad_from_model(model, x0, opt_indices, tracker, logger):
         last_x = np.empty((1, x0.shape[0]))
+        best_f = {'f': None}
+        best_x = np.empty((1, x0.shape[0]))
+        best_x[0] = x0.copy()
+        best_f['f'] = model.objective_function()
 
         def update(x):
             if np.array_equal(x, last_x[0]):
                 return
-            last_x[0] = x
-            p = x0.copy()
-            p[opt_indices] = x[opt_indices]
-            model.set_params(x)
+            # p = x0.copy()
+            # p[opt_indices] = x[opt_indices]
+            try:
+                model.set_params(x)
+                last_x[0] = x
+            except (ValueError, JitChol) as e:
+                best_x[0] = last_x[0].copy()
+                raise OptTermination(e)
+            if best_f['f'] is None:
+                best_f['f'] = model.objective_function()
+            else:
+                if model.objective_function() < best_f['f']:
+                    best_f['f'] = model.objective_function()
+                    best_x[0] = x.copy()
 
         def f(X=None):
             if X is not None:
@@ -76,21 +92,36 @@ class Optimizer:
             g[opt_indices] = model.objective_function_gradients().copy()[opt_indices]
             return g
 
+        def min_x():
+            return best_x[0]
+
         update(x0)
-        return f, f_grad, update
+        return f, f_grad, update, min_x
 
 
     @staticmethod
-    def BFGS(model, logger, opt_indices=None, max_fun=None):
+    def BFGS(model, logger, opt_indices=None, max_fun=None, apply_bound=False):
         start = model.get_params()
         if opt_indices is None:
             opt_indices = range(0, len(start))
 
         tracker = []
-        f, f_grad, update = Optimizer.get_f_f_grad_from_model(model, model.get_params(), opt_indices, tracker, logger)
-        x, f, d = fmin_l_bfgs_b(f, start, f_grad, factr=5, epsilon=1e-3, maxfun=max_fun,
-                      callback=lambda x: update(x))
-        update(x)
+        bounds = None
+        if apply_bound:
+            bounds = []
+            for x in range(start.shape[0]):
+                bounds.append((None, math.log(1e+10)))
+        init_x = model.get_params().copy()
+        f, f_grad, update, best_x = Optimizer.get_f_f_grad_from_model(model, model.get_params(), opt_indices, tracker, logger)
+        try:
+            x, f, d = fmin_l_bfgs_b(f, start, f_grad, factr=5, epsilon=1e-3, maxfun=max_fun,
+                          callback=lambda x: update(x), bounds=bounds)
+            update(best_x())
+        except OptTermination as e:
+            logger.warning('invalid value encountered. Opt terminated')
+            update(init_x)
+        d = {}
+        d['funcalls'] = 1
         return d, tracker
 
     @staticmethod
@@ -204,7 +235,7 @@ class Optimizer:
                         Configuration.ELL,
                         Configuration.HYPER
                     ])
-                    d, tracker = Optimizer.BFGS(model, logger, max_fun=iters_per_opt)
+                    d, tracker = Optimizer.BFGS(model, logger, max_fun=iters_per_opt, apply_bound=True)
                     obj_track += tracker
                     total_evals += d['funcalls']
 
@@ -225,3 +256,6 @@ class Optimizer:
                 total_evals = float('Nan')
         end=time.time()
         return model, (end - start) / total_evals, (end - start), obj_track
+
+class OptTermination(Exception):
+    pass
