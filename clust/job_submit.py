@@ -17,13 +17,13 @@ for i in range(0, many):
     # Customize your olsptions here
     job_name = "adez_%s" %(name)
     walltime = "20:00:00"
-    processors = "nodes=1:ppn=64"
+    processors = "nodes=1:ppn=48"
     command = "./run_job.sh %s" % (str(i))
     job_string = """#!/bin/bash
 #PBS -N %s
 #PBS -l walltime=%s
 #PBS -l %s
-#PBS -q short64
+#PBS -q short48
 #PBS -o /home/z3510738/code/output/%s.out
 #PBS -e /home/z3510738/code/error/%s.err
 #PBS -M a.dezfouli@unsw.edu.au
