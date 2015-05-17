@@ -63,12 +63,12 @@ class Optimizer:
                 return
             # p = x0.copy()
             # p[opt_indices] = x[opt_indices]
-            try:
-                model.set_params(x)
-                last_x[0] = x
-            except (ValueError, JitChol) as e:
-                best_x[0] = last_x[0].copy()
-                raise OptTermination(e)
+            # try:
+            model.set_params(x)
+            last_x[0] = x
+            # except (ValueError, JitChol) as e:
+            #     best_x[0] = last_x[0].copy()
+            #     raise OptTermination(e)
             if best_f['f'] is None:
                 best_f['f'] = model.objective_function()
             else:
@@ -252,6 +252,18 @@ class Optimizer:
                     obj_track += tracker
                     total_evals += d['funcalls']
 
+                if 'pi' in method:
+                    logger.info('pi params')
+                    model.set_configuration([
+                        Configuration.ENTROPY,
+                        Configuration.CROSS,
+                        Configuration.PI,
+                        Configuration.ELL,
+                    ])
+                    d, tracker = Optimizer.BFGS(model, logger, max_fun=iters_per_opt)
+                    obj_track += tracker
+                    total_evals += d['funcalls']
+                    print model.MoG.pi
 
                 if not (max_fun_evals is None) and total_evals > max_fun_evals:
                     break

@@ -19,11 +19,14 @@ class MoG:
         self.parameters = params
         self.m_from_array(params[:self.get_m_size()])
         self.s_from_array(params[self.get_m_size():(self.get_m_size() + self.get_s_size())])
-        self.pi_from_array(params[(self.get_m_size() + self.get_s_size()):])
         self._update()
 
     def pi_dim(self):
         return self.num_comp
+
+    def update_comp_params(self, params):
+        self.pi_from_array(params)
+        self._update()
 
     def m_dim(self):
         return self.num_comp, self.num_process, self.num_dim

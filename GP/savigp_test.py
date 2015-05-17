@@ -111,24 +111,32 @@ class SAVIGP_Test:
     @staticmethod
     def test_grad(verbose=False):
         configs = [
-            [
-                Configuration.MoG,
-                Configuration.ENTROPY,
-                Configuration.CROSS,
-                Configuration.ELL,
-            ],
-            [
-                Configuration.MoG,
-                Configuration.ENTROPY,
-            ],
-            [
-                Configuration.MoG,
-                Configuration.CROSS,
-            ],
-            [
-                Configuration.MoG,
-                Configuration.ELL,
-            ],
+            # [
+            #     Configuration.MoG,
+            #     Configuration.ENTROPY,
+            #     Configuration.CROSS,
+            #     Configuration.PI,
+            #     Configuration.ELL,
+            # ],
+            # [
+            #     Configuration.ENTROPY,
+            #     Configuration.CROSS,
+            #     Configuration.PI,
+            #     Configuration.ELL,
+            # ],
+            #
+            # [
+            #     Configuration.MoG,
+            #     Configuration.ENTROPY,
+            # ],
+            # [
+            #     Configuration.MoG,
+            #     Configuration.CROSS,
+            # ],
+            # [
+            #     Configuration.MoG,
+            #     Configuration.ELL,
+            # ],
             [
                 Configuration.HYPER,
                 Configuration.ENTROPY,
@@ -148,10 +156,10 @@ class SAVIGP_Test:
                 Configuration.CROSS
             ],
 
-            [
-                Configuration.LL,
-                Configuration.ELL,
-            ]
+            # [
+            #     Configuration.LL,
+            #     Configuration.ELL,
+            # ]
         ]
 
         sparse = [False, True]
@@ -301,5 +309,5 @@ class SAVIGP_Test:
 if __name__ == '__main__':
     # SAVIGP_Test.test_gp(True, method='full')
     # SAVIGP_Test.init_test()
-    # SAVIGP_Test.test_grad()
-    SAVIGP_Test.test_savigp({'method': 'full', 'sparse_factor': 1.0})
+    SAVIGP_Test.test_grad()
+    # SAVIGP_Test.test_savigp({'method': 'full', 'sparse_factor': 1.0})

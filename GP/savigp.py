@@ -21,6 +21,7 @@ class Configuration(Enum):
     HYPER = 'HYP'
     MoG = 'MOG'
     LL = 'LL'
+    PI = 'PI'
 
 
 class SAVIGP(Model):
@@ -153,6 +154,9 @@ class SAVIGP(Model):
             self.param_names += ['m'] * self.MoG.get_m_size() + ['s'] * \
                                                                 self.MoG.get_s_size() + ['pi'] * self.num_mog_comp
 
+        if Configuration.PI in self.config_list:
+            self.param_names += ['pi'] * self.num_mog_comp
+
         if Configuration.HYPER in self.config_list:
             self.param_names += ['k'] * self.num_latent_proc * self.num_hyper_params
 
@@ -195,6 +199,8 @@ class SAVIGP(Model):
         if Configuration.MoG in self.config_list:
             grad_m = np.zeros((self.MoG.m_dim()))
             grad_s = np.zeros((self.MoG.get_s_size()))
+
+        if Configuration.PI in self.config_list:
             grad_pi = np.zeros((self.MoG.pi_dim()))
 
         if Configuration.HYPER in self.config_list:
@@ -206,6 +212,7 @@ class SAVIGP(Model):
             if Configuration.MoG in self.config_list:
                 grad_m += self._d_ent_d_m()
                 grad_s += self._transformed_d_ent_d_S()
+            if Configuration.PI in self.config_list:
                 grad_pi += self._d_ent_d_pi()
             if Configuration.HYPER in self.config_list:
                 grad_hyper += self._dent_dhyper()
@@ -217,7 +224,8 @@ class SAVIGP(Model):
             if Configuration.MoG in self.config_list:
                 grad_m += self._dcorss_dm()
                 grad_s += self.transform_dcorss_dS()
-                grad_pi += xdcorss_dpi
+            if Configuration.PI in self.config_list:
+               grad_pi += xdcorss_dpi
             if Configuration.HYPER in self.config_list:
                 grad_hyper += self._dcross_dhyper()
 
@@ -231,6 +239,7 @@ class SAVIGP(Model):
             if Configuration.MoG in self.config_list:
                 grad_m += xdell_dm
                 grad_s += self.MoG.transform_S_grad(xdell_ds)
+            if Configuration.PI in self.config_list:
                 grad_pi += xdell_dpi
             if Configuration.HYPER in self.config_list:
                 grad_hyper += xdell_hyper
@@ -238,7 +247,11 @@ class SAVIGP(Model):
         self.grad_ll = np.array([])
         if Configuration.MoG in self.config_list:
             self.grad_ll = np.hstack([grad_m.flatten(),
-                                      grad_s,
+                                      grad_s
+            ])
+
+        if Configuration.PI in self.config_list:
+            self.grad_ll = np.hstack([self.grad_ll,
                                       self.MoG.transform_pi_grad(grad_pi),
             ])
 
@@ -272,6 +285,9 @@ class SAVIGP(Model):
         if Configuration.MoG in self.config_list:
             self.MoG.update_parameters(p[:self.MoG.num_parameters()])
             index = self.MoG.num_parameters()
+        if Configuration.PI in self.config_list:
+            self.MoG.update_comp_params(p[index:(index + self.num_mog_comp)])
+            index += self.num_mog_comp
         if Configuration.HYPER in self.config_list:
             self.hyper_params = np.exp(p[index:(index + self.num_latent_proc * self.num_hyper_params)].
                                        reshape((self.num_latent_proc, self.num_hyper_params)))
@@ -292,6 +308,9 @@ class SAVIGP(Model):
         params = np.array([])
         if Configuration.MoG in self.config_list:
             params = self.MoG.parameters
+        if Configuration.PI in self.config_list:
+            params = np.hstack([params, self.MoG.pi_untrans])
+
         if Configuration.HYPER in self.config_list:
             params = np.hstack([params, np.log(self.hyper_params.flatten())])
         if Configuration.LL in self.config_list:
@@ -399,8 +418,7 @@ class SAVIGP(Model):
         else:
             d_ell_d_ll = 0
 
-        if Configuration.MoG in self.config_list or \
-            Configuration.LL in self.config_list or \
+        if Configuration.ELL in self.config_list or \
             self.cached_ell is None or \
             self.calculate_dhyper():
             A, Kzx, K = self._get_A_K(X)
