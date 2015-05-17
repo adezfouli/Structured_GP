@@ -13,7 +13,7 @@ class ExperimentRunner:
 
         configs = []
         expr_names = ExperimentRunner.get_experiments()
-        methods = ['full', 'mix1', 'mix2']
+        methods = ['full']
         sparse_factor = [1.0, 0.8, 0.6, 0.4, 0.2, 0.1]
         run_ids = [1, 2, 3, 4, 5]
         for e in expr_names:
@@ -36,11 +36,11 @@ class ExperimentRunner:
         """
 
         # uncomment to run desired experiment
-        # return [Experiments.boston_data.__name__]
+        return [Experiments.boston_data.__name__]
         # return [Experiments.wisconsin_breast_cancer_data.__name__]
         # return [Experiments.USPS_data.__name__]
         # return [Experiments.creep_data.__name__]
-        return [Experiments.abalone_data.__name__]
+        # return [Experiments.abalone_data.__name__]
 
 
     @staticmethod
