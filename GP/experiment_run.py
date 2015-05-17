@@ -13,9 +13,9 @@ class ExperimentRunner:
 
         configs = []
         expr_names = ExperimentRunner.get_experiments()
-        methods = ['mix1']
-        # sparse_factor = [1.0, 0.8, 0.6]
-        sparse_factor = [0.4, 0.2, 0.1]
+        methods = ['full']
+        sparse_factor = [1.0, 0.8, 0.6]
+        # sparse_factor = [0.4, 0.2, 0.1]
         # sparse_factor = [1.0, 0.8]
         # sparse_factor = [0.6, 0.4]
         # sparse_factor = [0.2, 0.1]
