@@ -16,8 +16,8 @@ class ExperimentRunner:
         methods = ['mix2']
         # sparse_factor = [1.0, 0.8, 0.6]
         # sparse_factor = [0.4, 0.2, 0.1]
-        # sparse_factor = [1.0, 0.8]
-        sparse_factor = [0.6, 0.4]
+        sparse_factor = [1.0, 0.8]
+        # sparse_factor = [0.6, 0.4]
         # sparse_factor = [0.2, 0.1]
         run_ids = [1, 2, 3, 4, 5]
         for e in expr_names:
