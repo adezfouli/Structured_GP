@@ -13,7 +13,7 @@ for i in range(0, many):
 
     # Open a pipe to the qsub command.
 
-    name = 'creep_mix1_' + ''.join(random.choice(string.ascii_uppercase) for _ in range(3))
+    name = 'creep_mix2_' + ''.join(random.choice(string.ascii_uppercase) for _ in range(3))
     # Customize your olsptions here
     job_name = "adez_%s" %(name)
     walltime = "71:00:00"
