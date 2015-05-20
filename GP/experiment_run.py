@@ -13,9 +13,9 @@ class ExperimentRunner:
 
         configs = []
         expr_names = ExperimentRunner.get_experiments()
-        methods = ['full']
+        methods = ['full', 'mix1', 'mix2']
         # sparse_factor = [1.0, 0.8, 0.6]
-        sparse_factor = [0.4, 0.2, 0.1]
+        sparse_factor = [1.0, 0.5, 0.2, 0.1]
         # sparse_factor = [1.0, 0.8]
         # sparse_factor = [0.6, 0.4]
         # sparse_factor = [0.2, 0.1]
@@ -42,8 +42,8 @@ class ExperimentRunner:
         # uncomment to run desired experiment
         # return [Experiments.boston_data.__name__]
         # return [Experiments.wisconsin_breast_cancer_data.__name__]
-        return [Experiments.USPS_data.__name__]
-        # return [Experiments.creep_data.__name__]
+        # return [Experiments.USPS_data.__name__]
+        return [Experiments.creep_data.__name__]
         # return [Experiments.abalone_data.__name__]
 
 
@@ -130,7 +130,7 @@ def run_config(config):
 if __name__ == '__main__':
     logger = Experiments.get_logger('general_' + Experiments.get_ID(), logging.DEBUG)
 
-    # ExperimentRunner.run_parallel(30)
+    ExperimentRunner.run_parallel(30)
     # run_config_serial(ExperimentRunner.get_configs())
 
     # runs an individual configuration
