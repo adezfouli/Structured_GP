@@ -126,7 +126,7 @@ class Experiments:
     @staticmethod
     def run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, run_id, num_inducing, num_samples,
                   sparsify_factor, to_optimize, trans_class, random_Z, logging_level, export_X,
-                  latent_noise=0.001, opt_per_iter=40, max_iter=200):
+                  latent_noise=0.001, opt_per_iter=40, max_iter=200, n_threads=1):
 
         folder_name = name + '_' + Experiments.get_ID()
         logger = Experiments.get_logger(folder_name, logging_level)
@@ -165,17 +165,17 @@ class Experiments:
 
         if method == 'full':
             m = SAVIGP_SingleComponent(Xtrain, Ytrain, num_inducing, cond_ll,
-                                       kernel, num_samples, None, latent_noise, False, random_Z)
+                                       kernel, num_samples, None, latent_noise, False, random_Z, n_threads=n_threads)
             _, timer_per_iter, total_time, tracker = \
                 Optimizer.optimize_model(m, opt_max_fun_evals, logger, to_optimize, xtol, opt_per_iter, max_iter, ftol)
         if method == 'mix1':
             m = SAVIGP_Diag(Xtrain, Ytrain, num_inducing, 1, cond_ll,
-                            kernel, num_samples, None, latent_noise, False, random_Z)
+                            kernel, num_samples, None, latent_noise, False, random_Z, n_threads=n_threads)
             _, timer_per_iter, total_time, tracker = \
                 Optimizer.optimize_model(m, opt_max_fun_evals, logger, to_optimize, xtol, opt_per_iter, max_iter, ftol)
         if method == 'mix2':
             m = SAVIGP_Diag(Xtrain, Ytrain, num_inducing, 2, cond_ll,
-                            kernel, num_samples, None, latent_noise, False, random_Z)
+                            kernel, num_samples, None, latent_noise, False, random_Z, n_threads=n_threads)
             _, timer_per_iter, total_time, tracker = \
                 Optimizer.optimize_model(m, opt_max_fun_evals, logger, to_optimize, xtol, opt_per_iter, max_iter, ftol)
         if method == 'gp':
@@ -222,12 +222,12 @@ class Experiments:
         # number of inducing points
         num_inducing = int(Xtrain.shape[0] * sparsify_factor)
         cond_ll = UnivariateGaussian(np.array(gaussian_sigma))
-        num_samples = 4000
+        num_samples = 2000
 
         names.append(
             Experiments.run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, d['id'], num_inducing,
                                   num_samples, sparsify_factor, ['hyp', 'mog', 'll'], MeanTransformation, True,
-                                  config['log_level'], False, latent_noise=0.001, opt_per_iter=50, max_iter=200))
+                                  config['log_level'], False, latent_noise=0.001, opt_per_iter=25, max_iter=200))
         return names
 
     @staticmethod
@@ -243,17 +243,24 @@ class Experiments:
         Xtest = d['test_X']
         Ytest = d['test_Y']
         name = 'breast_cancer'
+
+        # uncomment these lines to use softmax
+        # kernel = Experiments.get_kernels(Xtrain.shape[1], 2, False)
+        # Ytrain = np.array([(Ytrain[:,0] + 1) / 2, (-Ytrain[:,0] + 1) / 2]).T
+        # Ytest = np.array([(Ytest[:,0] + 1) / 2, (-Ytest[:,0] + 1) / 2]).T
+        # cond_ll = SoftmaxLL(2)
+
+        # uncomment these lines to use logistic
+        cond_ll = LogisticLL()
         kernel = Experiments.get_kernels(Xtrain.shape[1], 1, False)
 
         # number of inducing points
         num_inducing = int(Xtrain.shape[0] * sparsify_factor)
-        num_samples = 4000
-        cond_ll = LogisticLL()
-
+        num_samples = 2000
         names.append(
             Experiments.run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, d['id'], num_inducing,
                                   num_samples, sparsify_factor, ['mog', 'hyp'], IdentityTransformation, True,
-                                  config['log_level'], False, latent_noise=0.001, opt_per_iter=50, max_iter=200))
+                                  config['log_level'], False, latent_noise=0.001, opt_per_iter=25, max_iter=200))
         return names
 
 
@@ -274,7 +281,7 @@ class Experiments:
 
         # number of inducing points
         num_inducing = int(Xtrain.shape[0] * sparsify_factor)
-        num_samples = 4000
+        num_samples = 2000
         cond_ll = LogGaussianCox(math.log(191./811))
         kernel[0].variance= 1.0
         kernel[0].lengthscale= 13516.
@@ -299,17 +306,16 @@ class Experiments:
         Xtest = d['test_X']
         Ytest = d['test_Y']
         name = 'USPS'
-        kernel = Experiments.get_kernels(Xtrain.shape[1], 3, False)
-
+        kernel = [ExtRBF(Xtrain.shape[1], variance=2, lengthscale=np.array((4.,)), ARD=False) for j in range(3)]
         # number of inducing points
         num_inducing = int(Xtrain.shape[0] * sparsify_factor)
-        num_samples = 4000
+        num_samples = 2000
         cond_ll = SoftmaxLL(3)
 
         names.append(
             Experiments.run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, d['id'], num_inducing,
                                   num_samples, sparsify_factor, ['mog', 'hyp'], IdentityTransformation, True,
-                                  config['log_level'], False,  latent_noise=0.001, opt_per_iter=50, max_iter=200))
+                                  config['log_level'], False,  latent_noise=0.001, opt_per_iter=25, max_iter=300))
 
 
     @staticmethod
@@ -329,7 +335,7 @@ class Experiments:
 
         # number of inducing points
         num_inducing = int(Xtrain.shape[0] * sparsify_factor)
-        num_samples = 4000
+        num_samples = 2000
 
         cond_ll = WarpLL(np.array([-2.0485, 1.7991, 1.5814]),
                          np.array([2.7421, 0.9426, 1.7804]),
@@ -339,7 +345,7 @@ class Experiments:
         names.append(
             Experiments.run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, d['id'], num_inducing,
                                   num_samples, sparsify_factor, ['mog', 'hyp', 'll'], MinTransformation, True,
-                                  config['log_level'], False, latent_noise=0.001, opt_per_iter=50, max_iter=200))
+                                  config['log_level'], False, latent_noise=0.001, opt_per_iter=25, max_iter=200))
 
 
     @staticmethod
@@ -373,7 +379,33 @@ class Experiments:
         names.append(
             Experiments.run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, d['id'], num_inducing,
                                   num_samples, sparsify_factor, ['mog', 'hyp', 'll'], MinTransformation, True,
-                                  config['log_level'], False, latent_noise=0.001, opt_per_iter=50, max_iter=200))
+                                  config['log_level'], False, latent_noise=0.001, opt_per_iter=25, max_iter=200))
+
+
+    @staticmethod
+    def MNIST_data(config):
+        method = config['method']
+        sparsify_factor = config['sparse_factor']
+        np.random.seed(12000)
+        data = DataSource.mnist_data()
+        names = []
+        d = data[config['run_id'] - 1]
+        Xtrain = d['train_X']
+        Ytrain = d['train_Y']
+        Xtest = d['test_X']
+        Ytest = d['test_Y']
+        name = 'mnist'
+        kernel = [ExtRBF(Xtrain.shape[1], variance=2, lengthscale=np.array((4.,)), ARD=False) for j in range(10)]
+
+        # number of inducing points
+        num_inducing = int(Xtrain.shape[0] * sparsify_factor)
+        num_samples = 2000
+        cond_ll = SoftmaxLL(10)
+
+        names.append(
+            Experiments.run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, d['id'], num_inducing,
+                                  num_samples, sparsify_factor, ['mog', 'hyp'], IdentityTransformation, False,
+                                  config['log_level'], False,  latent_noise=0.001, opt_per_iter=4, max_iter=120, n_threads=30))
 
     @staticmethod
     def get_kernels(input_dim, num_latent_proc, ARD):

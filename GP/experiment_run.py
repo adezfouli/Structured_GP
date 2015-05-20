@@ -78,12 +78,12 @@ class ExperimentRunner:
 
     @staticmethod
     def boston_experiment():
-        Experiments.boston_data({'method': 'mix2', 'sparse_factor': 0.8, 'run_id': 3, 'log_level': logging.DEBUG})
+        Experiments.boston_data({'method': 'full', 'sparse_factor': 0.8, 'run_id': 3, 'log_level': logging.DEBUG})
 
     @staticmethod
     def wisconsin_breast_experiment():
         Experiments.wisconsin_breast_cancer_data(
-            {'method': 'mix1', 'sparse_factor': 1.0, 'run_id': 1, 'log_level': logging.DEBUG})
+            {'method': 'full', 'sparse_factor': 1.0, 'run_id': 1, 'log_level': logging.DEBUG})
 
     @staticmethod
     def abalone_experiment():
@@ -95,20 +95,24 @@ class ExperimentRunner:
 
     @staticmethod
     def USPS_experiment():
-        Experiments.USPS_data({'method': 'mix1', 'sparse_factor': 1.0, 'run_id': 3, 'log_level': logging.DEBUG})
+        Experiments.USPS_data({'method': 'full', 'sparse_factor': 0.1, 'run_id': 1, 'log_level': logging.DEBUG})
 
     @staticmethod
     def mining_experiment():
         Experiments.mining_data({'method': 'mix1', 'sparse_factor': 1.0, 'run_id': 1, 'log_level': logging.DEBUG})
 
     @staticmethod
+    def mnist_experiment():
+        Experiments.MNIST_data({'method': 'full', 'sparse_factor': 0.001, 'run_id': 1, 'log_level': logging.DEBUG})
+
+    @staticmethod
     def plot():
-        PlotOutput.plot_output_all('boston', Experiments.get_output_path(),
-                                   lambda x: x['method'] == 'mix1', False)
+        # PlotOutput.plot_output_all('boston', Experiments.get_output_path(),
+        #                            lambda x: x['method'] == 'mix1', False)
 
         # plots all the files
-        # PlotOutput.plot_output_all('boston', Experiments.get_output_path(),
-        #                            None, False)
+        PlotOutput.plot_output_all('boston', Experiments.get_output_path(),
+                                   None, False)
 
         # plots for an specific experiment
         # PlotOutput.plot_output_all('abalone_graph', Experiments.get_output_path(),
@@ -126,7 +130,7 @@ def run_config(config):
 if __name__ == '__main__':
     logger = Experiments.get_logger('general_' + Experiments.get_ID(), logging.DEBUG)
 
-    ExperimentRunner.run_parallel(15)
+    # ExperimentRunner.run_parallel(30)
     # run_config_serial(ExperimentRunner.get_configs())
 
     # runs an individual configuration
@@ -136,5 +140,6 @@ if __name__ == '__main__':
     # ExperimentRunner.USPS_experiment()
     # ExperimentRunner.mining_experiment()
     # ExperimentRunner.abalone_experiment()
+    # ExperimentRunner.mnist_experiment()
 
     # ExperimentRunner.plot()

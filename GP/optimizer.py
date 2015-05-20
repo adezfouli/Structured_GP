@@ -64,7 +64,7 @@ class Optimizer:
             # p = x0.copy()
             # p[opt_indices] = x[opt_indices]
             try:
-                model.set_params(x)
+                model.set_params(x.copy())
                 last_x[0] = x
             except (ValueError, JitChol) as e:
                 best_x[0] = last_x[0].copy()
@@ -200,17 +200,6 @@ class Optimizer:
         last_obj = None
         try:
             while not converged:
-                if 'hyp' in method:
-                    logger.info('hyp params')
-                    model.set_configuration([
-                        Configuration.ENTROPY,
-                        Configuration.CROSS,
-                        Configuration.ELL,
-                        Configuration.HYPER
-                    ])
-                    d, tracker = Optimizer.BFGS(model, logger, max_fun=iters_per_opt, apply_bound=True)
-                    obj_track += tracker
-                    total_evals += d['funcalls']
 
                 if 'mog' in method:
                     logger.info('mog params')
@@ -252,6 +241,17 @@ class Optimizer:
                     obj_track += tracker
                     total_evals += d['funcalls']
 
+                if 'hyp' in method:
+                    logger.info('hyp params')
+                    model.set_configuration([
+                        Configuration.ENTROPY,
+                        Configuration.CROSS,
+                        Configuration.ELL,
+                        Configuration.HYPER
+                    ])
+                    d, tracker = Optimizer.BFGS(model, logger, max_fun=iters_per_opt, apply_bound=True)
+                    obj_track += tracker
+                    total_evals += d['funcalls']
 
 
                 if not (max_fun_evals is None) and total_evals > max_fun_evals:

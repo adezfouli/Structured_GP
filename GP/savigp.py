@@ -1,3 +1,4 @@
+import threading
 import GPy
 from atom.enum import Enum
 from scipy.misc import logsumexp
@@ -37,7 +38,7 @@ class SAVIGP(Model):
     :rtype: model object
     """
     def __init__(self, X, Y, num_inducing, num_mog_comp, likelihood, kernels, n_samples,
-                 config_list=None, latent_noise=0, exact_ell=False, random_Z=False):
+                 config_list=None, latent_noise=0, exact_ell=False, random_Z=False, n_threads =1):
 
         super(SAVIGP, self).__init__("SAVIGP")
         if config_list is None:
@@ -64,6 +65,7 @@ class SAVIGP(Model):
         self.num_like_params = self.cond_likelihood.get_num_params()
         self.is_exact_ell = exact_ell
         self.num_data_points = X.shape[0]
+        self.n_threads=n_threads
 
         self.cached_ell = None
         self.cached_ent = None
@@ -82,8 +84,16 @@ class SAVIGP(Model):
         self.invZ = np.array([np.zeros((self.num_inducing, self.num_inducing))] * self.num_latent_proc)
         self.log_detZ = np.zeros(self.num_latent_proc)
 
-        self.normal_samples = np.random.normal(0, 1, self.n_samples * self.num_latent_proc * self.X.shape[0]) \
-            .reshape((self.num_latent_proc, self.n_samples, self.X.shape[0]))
+        self.X_paritions, self.Y_paritions, self.n_partitions, self.partition_size = self._partition_data(X, Y)
+
+        self.normal_samples = np.random.normal(0, 1, self.n_samples * self.num_latent_proc * self.partition_size) \
+            .reshape((self.num_latent_proc, self.n_samples, self.partition_size))
+
+        # uncomment to use sample samples for all data points
+        # self.normal_samples = np.random.normal(0, 1, self.n_samples * self.num_latent_proc) \
+        #     .reshape((self.num_latent_proc, self.n_samples))
+        #
+        # self.normal_samples = np.repeat(self.normal_samples[:, :, np.newaxis], self.partition_size, 2)
 
         self._update_latent_kernel()
 
@@ -93,6 +103,30 @@ class SAVIGP(Model):
 
         self.set_configuration(self.config_list)
 
+    def _partition_data(self, X, Y):
+        X_paritions = []
+        Y_paritions = []
+        if 0 == (X.shape[0] % self._max_parition_size()):
+            n_partitions = X.shape[0] / self._max_parition_size()
+        else:
+            n_partitions = X.shape[0] / self._max_parition_size() + 1
+        if X.shape[0] > self._max_parition_size():
+            paritions = np.array_split(np.hstack((X, Y)), n_partitions)
+            partition_size = self._max_parition_size()
+
+            for p in paritions:
+                X_paritions.append(p[:, :X.shape[1]])
+                Y_paritions.append(p[:, X.shape[1]:X.shape[1] + Y.shape[1]])
+        else:
+            X_paritions = ([X])
+            Y_paritions = ([Y])
+            partition_size = X.shape[0]
+        return X_paritions, Y_paritions, n_partitions, partition_size
+
+
+    def _max_parition_size(self):
+        return 2000
+
     def _clust_inducing_points(self, X, Y):
         Z = np.array([np.zeros((self.num_inducing, self.input_dim))] * self.num_latent_proc)
         init_m = np.empty((self.num_inducing, self.num_latent_proc))
@@ -101,6 +135,9 @@ class SAVIGP(Model):
             for j in range(self.num_latent_proc):
                 Z[j, :, :] = X.copy()
                 init_m[:, j] = Y[:, j].copy()
+            for i in range(self.num_inducing):
+                init_m[i] = self.cond_likelihood.map_Y_to_f(np.array([Y[i]])).copy()
+
         else:
             if (self.num_inducing < self.num_data_points / 10) and self.num_data_points > 10000:
                 clst = MiniBatchKMeans(self.num_inducing)
@@ -111,9 +148,9 @@ class SAVIGP(Model):
             for zi in range(self.num_inducing):
                 yindx = np.where(c == zi)
                 if yindx[0].shape[0] == 0:
-                    init_m[zi] = Y[:, :].mean()
+                    init_m[zi] = self.cond_likelihood.map_Y_to_f(Y).copy()
                 else:
-                    init_m[zi] = np.mean(Y[yindx[0], :], axis=0)
+                    init_m[zi] = self.cond_likelihood.map_Y_to_f(Y[yindx[0], :]).copy()
             for j in range(self.num_latent_proc):
                 Z[j, :, :] = centers.copy()
 
@@ -125,11 +162,13 @@ class SAVIGP(Model):
         init_m = np.empty((self.num_inducing, self.num_latent_proc))
         for j in range(self.num_latent_proc):
             if self.num_inducing == X.shape[0]:
-                i = range(self.X.shape[0])
+                inducing_index = range(self.X.shape[0])
             else:
-                i = np.random.permutation(X.shape[0])[:self.num_inducing]
-            Z[j, :, :] = X[i].copy()
-            init_m[:, j] = Y[i, j]
+                inducing_index = np.random.permutation(X.shape[0])[:self.num_inducing]
+            Z[j, :, :] = X[inducing_index].copy()
+            init_m[:, j] = Y[inducing_index, j]
+        for i in range(self.num_inducing):
+            init_m[i] = self.cond_likelihood.map_Y_to_f(np.array([Y[inducing_index[i]]])).copy()
 
         return Z, init_m
 
@@ -225,8 +264,8 @@ class SAVIGP(Model):
 
 
         if Configuration.ELL in self.config_list:
-            pX, pY = self._get_data_partition()
-            xell, xdell_dm, xdell_ds, xdell_dpi, xdell_hyper, xdell_dll = self._ell(self.n_samples, pX, pY, self.cond_likelihood)
+            xell, xdell_dm, xdell_ds, xdell_dpi, xdell_hyper, xdell_dll = self._ell()
+            self.cached_ell = xell
             self.ll += xell
             if Configuration.MoG in self.config_list:
                 grad_m += xdell_dm
@@ -296,7 +335,7 @@ class SAVIGP(Model):
             params = np.hstack([params, np.log(self.hyper_params.flatten())])
         if Configuration.LL in self.config_list:
             params = np.hstack([params, self.cond_likelihood.get_params()])
-        return params
+        return params.copy()
 
     def get_posterior_params(self):
         return self.MoG.get_m_S_params()
@@ -378,14 +417,60 @@ class SAVIGP(Model):
     def _dell_ds(self, k, j, cond_ll, A, n_sample, sigma_kj):
         raise Exception("method not implemented")
 
-    def _ell(self, n_sample, X, Y, cond_log_likelihood):
+    def _ell(self):
+
+        threadLimiter = threading.BoundedSemaphore(self.n_threads)
+
+        lock = threading.Lock()
+
+        class MyThread(threading.Thread):
+            def __init__(self, savigp, X, Y, output):
+                super(MyThread, self).__init__()
+                self.output = output
+                self.X = X
+                self.Y = Y
+                self.savigp = savigp
+
+            def run(self):
+                threadLimiter.acquire()
+                try:
+                    self.Executemycode()
+                finally:
+                    threadLimiter.release()
+            def Executemycode(self):
+                out = self.savigp._parition_ell(self.X, self.Y)
+                lock.acquire()
+                try:
+                    if not self.output:
+                        self.output.append(list(out))
+                    else:
+                        for o in range(len(out)):
+                            self.output[0][o] += out[o]
+                finally:
+                    lock.release()
+
+
+        total_out = []
+        threads = []
+        for p in range(0, self.n_partitions):
+            t = MyThread(self, self.X_paritions[p], self.Y_paritions[p], total_out)
+            threads.append(t)
+            t.start()
+
+        for thread in threads:
+            thread.join()
+
+        return total_out[0]
+
+
+    def _parition_ell(self, X, Y):
         """
         calculating expected log-likelihood, and it's derivatives
         :returns ell, normal ell, dell / dm, dell / ds, dell/dpi
         """
 
         # print 'ell started'
-        total_ell = 0
+        total_ell = self.cached_ell
         d_ell_dm = np.zeros((self.num_mog_comp, self.num_latent_proc, self.num_inducing))
         d_ell_ds = np.zeros((self.num_mog_comp, self.num_latent_proc) + self.MoG.S_dim())
         d_ell_dPi = np.zeros(self.num_mog_comp)
@@ -403,21 +488,24 @@ class SAVIGP(Model):
             Configuration.LL in self.config_list or \
             self.cached_ell is None or \
             self.calculate_dhyper():
+            total_ell = 0
             A, Kzx, K = self._get_A_K(X)
             mean_kj = np.empty((self.num_mog_comp, self.num_latent_proc, X.shape[0]))
             sigma_kj = np.empty((self.num_mog_comp, self.num_latent_proc, X.shape[0]))
-            F = np.empty((self.n_samples, self.X.shape[0], self.num_latent_proc))
+            F = np.empty((self.n_samples, X.shape[0], self.num_latent_proc))
             for k in range(self.num_mog_comp):
                 for j in range(self.num_latent_proc):
+                    norm_samples = self.normal_samples[j, :, :X.shape[0]]
                     mean_kj[k,j] = self._b(k, j, A[j], Kzx[j].T)
                     sigma_kj[k,j] = self._sigma(k, j, K[j], A[j], Kzx[j].T)
-                    F[:, :, j] = (self.normal_samples[j, :, :] * np.sqrt(sigma_kj[k,j]))
+                    F[:, :, j] = (norm_samples * np.sqrt(sigma_kj[k,j]))
                     F[:, :, j] = F[:, :, j] + mean_kj[k,j]
-                cond_ll, grad_ll = cond_log_likelihood.ll_F_Y(F, Y)
+                cond_ll, grad_ll = self.cond_likelihood.ll_F_Y(F, Y)
                 for j in range(self.num_latent_proc):
-                    m = self._average(cond_ll, self.normal_samples[j, :, :] / np.sqrt(sigma_kj[k,j]), True)
+                    norm_samples = self.normal_samples[j, :, :X.shape[0]]
+                    m = self._average(cond_ll, norm_samples / np.sqrt(sigma_kj[k,j]), True)
                     d_ell_dm[k,j] = self._proj_m_grad(j, mdot(m, Kzx[j].T)) * self.MoG.pi[k]
-                    d_ell_ds[k,j] = self._dell_ds(k, j, cond_ll, A, n_sample, sigma_kj)
+                    d_ell_ds[k,j] = self._dell_ds(k, j, cond_ll, A, sigma_kj, norm_samples)
                     if self.calculate_dhyper():
                         ds_dhyp = self._dsigma_dhyp(j, k, A[j], Kzx, X)
                         db_dhyp = self._db_dhyp(j, k, A[j], X)
@@ -425,25 +513,23 @@ class SAVIGP(Model):
                             d_ell_d_hyper[j, h] += -1./2 * self.MoG.pi[k] * (
                                                 self._average(cond_ll,
                                                 np.ones(cond_ll.shape) / sigma_kj[k, j] * ds_dhyp[:, h] +
-                                                -2. * self.normal_samples[j] / np.sqrt(sigma_kj[k,j]) * db_dhyp[:, h]
-                                                - np.square(self.normal_samples[j])/sigma_kj[k, j] * ds_dhyp[:, h], True)).sum()
+                                                -2. * norm_samples / np.sqrt(sigma_kj[k,j]) * db_dhyp[:, h]
+                                                - np.square(norm_samples)/sigma_kj[k, j] * ds_dhyp[:, h], True)).sum()
 
-                sum_cond_ll = cond_ll.sum() / n_sample
+                sum_cond_ll = cond_ll.sum() / self.n_samples
                 total_ell += sum_cond_ll * self.MoG.pi[k]
                 d_ell_dPi[k] = sum_cond_ll
 
                 if Configuration.LL in self.config_list:
-                    d_ell_d_ll += self.MoG.pi[k] * grad_ll.sum() / n_sample
+                    d_ell_d_ll += self.MoG.pi[k] * grad_ll.sum() / self.n_samples
 
-            self.cached_ell = total_ell
-
-            total_ell = 0
             if self.is_exact_ell:
+                total_ell = 0
                 for n in range(len(X)):
                     for k in range(self.num_mog_comp):
-                            total_ell += self.cond_likelihood.ell([mean_kj[k, j, n]], [sigma_kj[k, j, n]], Y[n, :]) * self.MoG.pi[k]
+                            total_ell += self.cond_likelihood.ell(np.array(mean_kj[k, :, n]), np.array(sigma_kj[k, :, n]), Y[n, :]) * self.MoG.pi[k]
 
-        return self.cached_ell, d_ell_dm, d_ell_ds, d_ell_dPi, d_ell_d_hyper, d_ell_d_ll
+        return total_ell, d_ell_dm, d_ell_ds, d_ell_dPi, d_ell_d_hyper, d_ell_d_ll
 
     def _average(self, condll, X, variance_reduction):
         if variance_reduction:
@@ -459,7 +545,7 @@ class SAVIGP(Model):
 
             grads = np.multiply(condll, X) - np.multiply(cvopt, X.T).T
         else:
-            grads = np.multiply(condll, X)
+            grads = np.multiply(condll.T, X.T)
         return grads.mean(axis=1)
 
 
@@ -635,7 +721,16 @@ class SAVIGP(Model):
         return predicted_mu, predicted_var, -logsumexp(nlpd, 1, self.MoG.pi)
 
     def predict(self, Xs, Ys=None):
-        mu, var, nlpd = self._predict_comp(Xs, Ys)
+
+        X_paritions, Y_paritions, n_partitions, partition_size = self._partition_data(Xs, Ys)
+
+        mu, var, nlpd = self._predict_comp(X_paritions[0], Y_paritions[0])
+        for p in range(1, len(X_paritions)):
+            p_mu, p_var, p_nlpd = self._predict_comp(X_paritions[p], Y_paritions[p])
+            mu = np.concatenate((mu, p_mu), axis=0)
+            var = np.concatenate((var, p_var), axis=0)
+            nlpd = np.concatenate((nlpd, p_nlpd), axis=0)
+
         predicted_mu = np.average(mu, axis=1, weights=self.MoG.pi)
         predicted_var = np.average(mu ** 2, axis=1, weights=self.MoG.pi) \
                         + np.average(var, axis=1, weights=self.MoG.pi) - predicted_mu ** 2
