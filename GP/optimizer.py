@@ -185,7 +185,7 @@ class Optimizer:
         return ["%.2f" % a[j] for j in range(len(a))]
 
     @staticmethod
-    def optimize_model(model, max_fun_evals, logger, method=None, xtol=1e-4, iters_per_opt=15000, max_iters=200, ftol =1e-5):
+    def optimize_model(model, max_fun_evals, logger, method=None, xtol=1e-4, iters_per_opt=15000, max_iters=200, ftol =1e-5, shuffle=False):
         if not method:
             method=['hyp', 'mog']
         if not (max_fun_evals is None):
@@ -200,6 +200,9 @@ class Optimizer:
         last_obj = None
         try:
             while not converged:
+
+                if shuffle:
+                    model._sub_parition()
 
                 if 'mog' in method:
                     logger.info('mog params')

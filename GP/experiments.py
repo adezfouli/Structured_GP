@@ -164,7 +164,11 @@ class Experiments:
             m = SAVIGP_SingleComponent(Xtrain, Ytrain, num_inducing, cond_ll,
                                        kernel, num_samples, None, latent_noise, False, random_Z, n_threads=n_threads)
             _, timer_per_iter, total_time, tracker = \
-                Optimizer.optimize_model(m, opt_max_fun_evals, logger, to_optimize, xtol, opt_per_iter, max_iter, ftol)
+                Optimizer.optimize_model(m, opt_max_fun_evals, logger, to_optimize, xtol, 5, 10, ftol, shuffle=True)
+            m._repartition()
+            _, timer_per_iter, total_time, tracker = \
+                Optimizer.optimize_model(m, opt_max_fun_evals, logger, to_optimize, xtol, opt_per_iter, max_iter, ftol, shuffle=False)
+
         if method == 'mix1':
             m = SAVIGP_Diag(Xtrain, Ytrain, num_inducing, 1, cond_ll,
                             kernel, num_samples, None, latent_noise, False, random_Z, n_threads=n_threads)
@@ -402,7 +406,7 @@ class Experiments:
         names.append(
             Experiments.run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, d['id'], num_inducing,
                                   num_samples, sparsify_factor, ['mog', 'hyp'], IdentityTransformation, False,
-                                  config['log_level'], False,  latent_noise=0.001, opt_per_iter=4, max_iter=120, n_threads=30))
+                                  config['log_level'], False,  latent_noise=0.001, opt_per_iter=4, max_iter=120, n_threads=4))
 
     @staticmethod
     def get_kernels(input_dim, num_latent_proc, ARD):
