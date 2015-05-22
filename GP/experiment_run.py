@@ -13,9 +13,9 @@ class ExperimentRunner:
 
         configs = []
         expr_names = ExperimentRunner.get_experiments()
-        methods = ['full', 'mix1']
+        methods = ['full']
         sparse_factor = [1.0, 0.5, 0.2, 0.1]
-        run_ids = [1]
+        run_ids = [1, 2, 3, 4, 5]
         for e in expr_names:
             for m in methods:
                 for s in sparse_factor:
@@ -34,17 +34,17 @@ class ExperimentRunner:
         """
         Builds an array of experiments to run
         """
-        return [Experiments.boston_data.__name__,
-                Experiments.wisconsin_breast_cancer_data.__name__,
-                Experiments.abalone_data.__name__,
-                Experiments.creep_data.__name__]
+        # return [Experiments.boston_data.__name__,
+        #         Experiments.wisconsin_breast_cancer_data.__name__,
+        #         Experiments.abalone_data.__name__,
+        #         Experiments.creep_data.__name__]
         # uncomment to run desired experiment
         # return [Experiments.boston_data.__name__]
         # return [Experiments.wisconsin_breast_cancer_data.__name__]
-        # return [Experiments.USPS_data.__name__]
+        return [Experiments.USPS_data.__name__]
         # return [Experiments.creep_data.__name__]
         # return [Experiments.abalone_data.__name__]
-        return [Experiments.mining_data.__name__]
+        # return [Experiments.mining_data.__name__]
     #
 
     @staticmethod
@@ -130,7 +130,7 @@ def run_config(config):
 if __name__ == '__main__':
     logger = Experiments.get_logger('general_' + Experiments.get_ID(), logging.DEBUG)
 
-    ExperimentRunner.run_parallel(3)
+    ExperimentRunner.run_parallel(30)
     # run_config_serial(ExperimentRunner.get_configs())
 
     # runs an individual configuration
