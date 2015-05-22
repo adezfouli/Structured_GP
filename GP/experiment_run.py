@@ -13,13 +13,9 @@ class ExperimentRunner:
 
         configs = []
         expr_names = ExperimentRunner.get_experiments()
-        methods = ['full', 'mix1', 'mix2']
-        # sparse_factor = [1.0, 0.8, 0.6]
+        methods = ['full', 'mix1']
         sparse_factor = [1.0, 0.5, 0.2, 0.1]
-        # sparse_factor = [1.0, 0.8]
-        # sparse_factor = [0.6, 0.4]
-        # sparse_factor = [0.2, 0.1]
-        run_ids = [1, 2, 3, 4, 5]
+        run_ids = [1]
         for e in expr_names:
             for m in methods:
                 for s in sparse_factor:
@@ -48,7 +44,8 @@ class ExperimentRunner:
         # return [Experiments.USPS_data.__name__]
         # return [Experiments.creep_data.__name__]
         # return [Experiments.abalone_data.__name__]
-
+        return [Experiments.mining_data.__name__]
+    #
 
     @staticmethod
     def run_parallel(n_process):
@@ -110,12 +107,12 @@ class ExperimentRunner:
 
     @staticmethod
     def plot():
-        # PlotOutput.plot_output_all('boston', Experiments.get_output_path(),
-        #                            lambda x: x['method'] == 'mix1', False)
+        PlotOutput.plot_output_all('boston', Experiments.get_output_path(),
+                                   lambda x: x['method'] == 'full', False)
 
         # plots all the files
-        PlotOutput.plot_output_all('boston', Experiments.get_output_path(),
-                                   None, False)
+        # PlotOutput.plot_output_all('boston', Experiments.get_output_path(),
+        #                            None, False)
 
         # plots for an specific experiment
         # PlotOutput.plot_output_all('abalone_graph', Experiments.get_output_path(),
@@ -133,7 +130,7 @@ def run_config(config):
 if __name__ == '__main__':
     logger = Experiments.get_logger('general_' + Experiments.get_ID(), logging.DEBUG)
 
-    ExperimentRunner.run_parallel(60)
+    ExperimentRunner.run_parallel(3)
     # run_config_serial(ExperimentRunner.get_configs())
 
     # runs an individual configuration
