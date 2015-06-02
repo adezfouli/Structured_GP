@@ -2,6 +2,7 @@ import logging
 import math
 import pickle
 from ExtRBF import ExtRBF
+from structured_gp import StructureGP
 from gpstruct_wrapper import gpstruct_wrapper
 from data_transformation import MeanTransformation, IdentityTransformation, MinTransformation
 from savigp import SAVIGP
@@ -198,6 +199,12 @@ class Experiments:
                                        kernel, num_samples, None, latent_noise, False, random_Z, n_threads=n_threads, image=model_image, partition_size=partition_size)
             _, timer_per_iter, total_time, tracker, total_evals = \
                 Optimizer.optimize_model(m, opt_max_fun_evals, logger, to_optimize, xtol, opt_per_iter, max_iter, ftol, Experiments.opt_callback(folder_name), current_iter)
+        if method == 'structured':
+            m = StructureGP(Xtrain, Ytrain, num_inducing, cond_ll,
+                                       kernel, num_samples, None, latent_noise, False, random_Z, n_threads=n_threads, image=model_image, partition_size=partition_size)
+            _, timer_per_iter, total_time, tracker, total_evals = \
+                Optimizer.optimize_model(m, opt_max_fun_evals, logger, to_optimize, xtol, opt_per_iter, max_iter, ftol, Experiments.opt_callback(folder_name), current_iter)
+
         if method == 'mix1':
             m = SAVIGP_Diag(Xtrain, Ytrain, num_inducing, 1, cond_ll,
                             kernel, num_samples, None, latent_noise, False, random_Z, n_threads=n_threads, image=model_image, partition_size=partition_size)
@@ -520,7 +527,8 @@ class Experiments:
 
         Xtrain = np.array(Xtrain.todense())
         Xtest = np.array(Xtest.todense())
-        kernel = [ExtRBF(Xtrain.shape[1], variance=.1, lengthscale=np.array((.1,)), ARD=False)] * n_latent_processes
+        num_latent_proc = n_labels
+        kernel = [ExtRBF(Xtrain.shape[1], variance=1, lengthscale=np.array((1.,)), ARD=False) for j in range(num_latent_proc)]
         # number of inducing points
         num_inducing = int(Xtrain.shape[0] * sparsify_factor)
         num_samples = 2000
@@ -538,7 +546,7 @@ class Experiments:
             Experiments.run_model(Xtest, Xtrain, Ytest, np.empty((Xtrain.shape[0], 1)), cond_ll, kernel, method, name, 1, num_inducing,
                                   num_samples, sparsify_factor, ['mog'], IdentityTransformation, True,
                                   config['log_level'], False,  latent_noise=0.001,
-                                  opt_per_iter={'mog': 1, 'hyp': 3},
+                                  opt_per_iter={'mog': 10, 'hyp': 3},
                                   max_iter=1, n_threads=20,
                                    model_image_file=image))
 

@@ -115,7 +115,7 @@ class ExperimentRunner:
 
     @staticmethod
     def struct_experiment():
-        Experiments.struct_data({'method': 'full', 'sparse_factor': 1.0, 'run_id': 1, 'log_level': logging.DEBUG})
+        Experiments.struct_data({'method': 'structured', 'sparse_factor': .1, 'run_id': 1, 'log_level': logging.DEBUG})
 
 
     @staticmethod
@@ -154,7 +154,7 @@ if __name__ == '__main__':
     # ExperimentRunner.mining_experiment()
     # ExperimentRunner.abalone_experiment()
     # ExperimentRunner.mnist_experiment()
-    # ExperimentRunner.struct_experiment()
-    ExperimentRunner.sarcos_experiment()
+    ExperimentRunner.struct_experiment()
+    # ExperimentRunner.sarcos_experiment()
 
     # ExperimentRunner.plot()

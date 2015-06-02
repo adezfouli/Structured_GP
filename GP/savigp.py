@@ -9,7 +9,7 @@ import math
 from GPy.util.linalg import mdot
 import numpy as np
 from numpy.ma import trace, vstack
-from scipy.linalg import logm, det, cho_solve, solve_triangular
+from scipy.linalg import logm, det, cho_solve, solve_triangular, block_diag
 import scipy.stats
 from GPy import likelihoods
 from GPy.core import Model
@@ -414,7 +414,8 @@ class SAVIGP(Model):
         """
         calculating diagonal terms of K_tilda for latent process j (eq 4)
         """
-        return self.kernels_latent[j].Kdiag(p_X) - mdiag_dot(A, K)
+        pxs = np.split(p_X, self.seq_poses[1:-1], axis=0)
+        return block_diag(*tuple([self.kernels_latent[j].K(psx_i) for psx_i in pxs])) - mdot(A, K)
 
 
     def _b(self, k, j, Aj, Kzx):
@@ -433,7 +434,7 @@ class SAVIGP(Model):
     # @profile
     def _get_A_K(self, p_X):
         A = np.empty((self.num_latent_proc, len(p_X), self.num_inducing))
-        K = np.empty((self.num_latent_proc, len(p_X)))
+        K = np.empty((self.num_latent_proc, len(p_X), len(p_X)))
         Kzx = np.empty((self.num_latent_proc, self.num_inducing, p_X.shape[0]))
         for j in range(self.num_latent_proc):
             Kzx[j, :, :] = self.kernels_latent[j].K(self.Z[j, :, :], p_X)
@@ -516,23 +517,31 @@ class SAVIGP(Model):
             self.cached_ell is None or \
             self.calculate_dhyper():
             total_ell = 0
-            A, Kzx, K = self._get_A_K(X)
+            if self.A_cached is None:
+                self.A_cached, self.Kzx_cached, self.K_cached = self._get_A_K(X)
+            A = self.A_cached
+            Kzx = self.Kzx_cached
+            K = self.K_cached
             mean_kj = np.empty((self.num_mog_comp, self.num_latent_proc, X.shape[0]))
-            sigma_kj = np.empty((self.num_mog_comp, self.num_latent_proc, X.shape[0]))
+            sigma_kj = np.empty((self.num_mog_comp, self.num_latent_proc, X.shape[0], X.shape[0]))
+            chol_sigma = np.empty((self.num_mog_comp, self.num_latent_proc, X.shape[0], X.shape[0]))
+            chol_sigma_inv = np.empty((self.num_mog_comp, self.num_latent_proc, X.shape[0], X.shape[0]))
+            sigma_inv = np.empty((self.num_mog_comp, self.num_latent_proc, X.shape[0], X.shape[0]))
             F = np.empty((self.n_samples, X.shape[0], self.num_latent_proc))
             for k in range(self.num_mog_comp):
                 for j in range(self.num_latent_proc):
                     norm_samples = self.normal_samples[j, :, :X.shape[0]]
                     mean_kj[k,j] = self._b(k, j, A[j], Kzx[j].T)
                     sigma_kj[k,j] = self._sigma(k, j, K[j], A[j], Kzx[j].T)
-                    F[:, :, j] = (norm_samples * np.sqrt(sigma_kj[k,j]))
+                    chol_sigma[k,j], chol_sigma_inv[k,j], sigma_inv[k,j] = self._chol_sigma(sigma_kj[k,j])
+                    F[:, :, j] = mdot(norm_samples, chol_sigma[k,j])
                     F[:, :, j] = F[:, :, j] + mean_kj[k,j]
                 cond_ll, grad_ll = self.cond_likelihood.ll_F_Y(F, Y)
                 for j in range(self.num_latent_proc):
                     norm_samples = self.normal_samples[j, :, :X.shape[0]]
-                    m = self._average(cond_ll, norm_samples / np.sqrt(sigma_kj[k,j]), True)
+                    m = self._average(cond_ll, mdot(norm_samples, chol_sigma_inv[k,j]), True)
                     d_ell_dm[k,j] = self._proj_m_grad(j, mdot(m, Kzx[j].T)) * self.MoG.pi[k]
-                    d_ell_ds[k,j] = self._dell_ds(k, j, cond_ll, A, sigma_kj, norm_samples)
+                    d_ell_ds[k,j] = self._struct_dell_ds(k, j, cond_ll, A, sigma_kj, norm_samples, sigma_inv[k,j])
                     if self.calculate_dhyper():
                         ds_dhyp = self._dsigma_dhyp(j, k, A[j], Kzx, X)
                         db_dhyp = self._db_dhyp(j, k, A[j], X)

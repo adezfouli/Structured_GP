@@ -416,10 +416,10 @@ class StructLL(Likelihood):
     def ll_F_Y(self, F, Y):
 
         ll = np.empty((F.shape[0], self.dataset.object_size.sum()))
+        binaries = np.eye(self.dataset.n_labels)
         for s in range(F.shape[0]):
             for n in range(self.dataset.N):
                 unaries = F[s, self.seq_poses[n]: self.seq_poses[n+1], 0:self.dataset.n_labels]
-                binaries = F[s, self.seq_poses[n]: self.seq_poses[n+1], self.dataset.n_labels:].reshape((self.dataset.object_size[n], self.dataset.n_labels, self.dataset.n_labels))
                 ll[s, self.seq_poses[n]: self.seq_poses[n+1]] = log_likelihood_function_numba(unaries, binaries, self.dataset.Y[n], self.dataset.object_size[n], self.dataset.n_labels)
 
         return ll, None

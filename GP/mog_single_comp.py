@@ -38,6 +38,9 @@ class MoG_SingleComponent(MoG):
     def aSkja(self, a, k, j):
         return np.diagonal(mdot(a, self.s[k,j,:,:], a.T))
 
+    def aSkja_full(self, a, k, j):
+        return mdot(a, self.s[k,j,:,:], a.T)
+
     def mmTS(self, k, j):
         return mdot(self.m[k,j,:,np.newaxis], self.m[k,j,:,np.newaxis].T) + self.s[k,j]
 
