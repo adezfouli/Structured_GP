@@ -536,7 +536,7 @@ class SAVIGP(Model):
                     chol_sigma[k,j], chol_sigma_inv[k,j], sigma_inv[k,j] = self._chol_sigma(sigma_kj[k,j])
                     F[:, :, j] = mdot(norm_samples, chol_sigma[k,j])
                     F[:, :, j] = F[:, :, j] + mean_kj[k,j]
-                cond_ll, grad_ll = self.cond_likelihood.ll_F_Y(F, Y)
+                cond_ll, grad_ll, total_ell = self.cond_likelihood.ll_F_Y(F, Y, self)
                 for j in range(self.num_latent_proc):
                     norm_samples = self.normal_samples[j, :, :X.shape[0]]
                     m = self._average(cond_ll, mdot(norm_samples, chol_sigma_inv[k,j]), True)
@@ -553,7 +553,6 @@ class SAVIGP(Model):
                                                 - np.square(norm_samples)/sigma_kj[k, j] * ds_dhyp[:, h], True)).sum()
 
                 sum_cond_ll = cond_ll.sum() / self.n_samples
-                total_ell += sum_cond_ll * self.MoG.pi[k]
                 d_ell_dPi[k] = sum_cond_ll
 
                 if Configuration.LL in self.config_list:

@@ -1,19 +1,34 @@
 from GPy.util.linalg import mdot
-from scipy.linalg import block_diag, cho_solve, inv
+
+from scipy.linalg import block_diag, inv
+import numpy as np
+from savigp import Configuration
+
+from mog_diag import MoG_Diag
+
 from util import jitchol, inv_chol
 from savigp_single_comp import SAVIGP_SingleComponent
-import numpy as np
+
 __author__ = 'AT'
 
-class StructureGP(SAVIGP_SingleComponent):
 
+class StructureGP(SAVIGP_SingleComponent):
     def __init__(self, X, Y, num_inducing, likelihood, kernels, n_samples,
-                 config_list, latent_noise, is_exact_ell, inducing_on_Xs, n_threads =1, image=None, partition_size=3000):
+                 config_list, latent_noise, is_exact_ell, inducing_on_Xs, n_threads=1, image=None, partition_size=3000):
         self.seq_poses = likelihood.seq_poses
         self.A_cached = None
+        self.bin_m = np.zeros(likelihood.bin_dim) + 1
+        self.bin_s = np.ones(likelihood.bin_dim)
+        self.bin_noise = 1e-4
+        self.bin_kernel = np.eye(likelihood.bin_dim) * self.bin_noise
+        np.random.seed(12000)
+
+        self.binary_normal_samples = np.random.normal(0, 1, n_samples * likelihood.bin_dim) \
+            .reshape((likelihood.bin_dim, n_samples))
+
         super(StructureGP, self).__init__(X, Y, num_inducing, likelihood,
-                                                     kernels, n_samples, config_list, latent_noise,
-                                                     is_exact_ell, inducing_on_Xs, n_threads, image, partition_size)
+                                          kernels, n_samples, config_list, latent_noise,
+                                          is_exact_ell, inducing_on_Xs, n_threads, image, partition_size)
 
     def _sigma(self, k, j, Kj, Aj, Kzx):
         """
@@ -23,24 +38,66 @@ class StructureGP(SAVIGP_SingleComponent):
 
 
     def _chol_sigma(self, sigma):
-        sigmas = [0]* (len(self.seq_poses) - 1)
-        inv_sigmas = [0]* (len(self.seq_poses) - 1)
-        inv_sigmas_chol = [0]* (len(self.seq_poses) - 1)
-        for s in range(len(self.seq_poses) -1):
-            sigmas[s] = jitchol(sigma[self.seq_poses[s]:self.seq_poses[s+1], self.seq_poses[s]:self.seq_poses[s+1]])
+        sigmas = [0] * (len(self.seq_poses) - 1)
+        inv_sigmas = [0] * (len(self.seq_poses) - 1)
+        inv_sigmas_chol = [0] * (len(self.seq_poses) - 1)
+        for s in range(len(self.seq_poses) - 1):
+            sigmas[s] = jitchol(sigma[self.seq_poses[s]:self.seq_poses[s + 1], self.seq_poses[s]:self.seq_poses[s + 1]])
             inv_sigmas[s] = inv_chol(sigmas[s])
             inv_sigmas_chol[s] = inv(sigmas[s])
         return block_diag(*tuple(sigmas)), \
-               block_diag(*tuple(inv_sigmas_chol)),\
+               block_diag(*tuple(inv_sigmas_chol)), \
                block_diag(*tuple(inv_sigmas))
 
     def _break_to_blocks(self, A):
-        breaks = [0]*(len(self.seq_poses) - 1)
-        for s in range(len(self.seq_poses) -1):
-            breaks[s] = A[self.seq_poses[s]:self.seq_poses[s+1], self.seq_poses[s]:self.seq_poses[s+1]]
+        breaks = [0] * (len(self.seq_poses) - 1)
+        for s in range(len(self.seq_poses) - 1):
+            breaks[s] = A[self.seq_poses[s]:self.seq_poses[s + 1], self.seq_poses[s]:self.seq_poses[s + 1]]
         return breaks
 
     def _struct_dell_ds(self, k, j, cond_ll, A, sigma_kj, norm_samples, inv_sigma):
-        return  mdot(A[j].T * self._average(cond_ll, mdot(norm_samples**2 - np.ones((norm_samples.shape[0], 1)), inv_sigma), True), A[j]) \
-                                                * self.MoG.pi[k] / 2.
+        return mdot(
+            A[j].T * self._average(cond_ll, mdot(norm_samples ** 2 - np.ones((norm_samples.shape[0], 1)), inv_sigma),
+                                   True), A[j]) \
+               * self.MoG.pi[k] / 2.
+
+    def _bin_KL(self):
+        mu = self.bin_m
+        sBin = self.bin_s
+        dimS = sBin.shape[0]
+        sinv = 1. / sBin
+        k = np.diagonal(self.bin_kernel)
+        kinv = 1. / k
+        self.bin_ent = 0.5 * sum(np.log(sBin))
+        self.bin_NCE = -0.5 * sum(np.log(k)) \
+                  - 0.5 * np.dot((np.square(mu)), kinv) \
+                  - 0.5 * np.dot(kinv, sBin) \
+                  + 0.5 * dimS
+        self.bin_dM = -kinv * mu
+        self.bin_dL = 0.5 * (sinv - kinv)
+
+    def _update(self):
+        self._bin_KL()
+        super(StructureGP, self)._update()
+        self.ll += self.bin_ent + self.bin_NCE
+        if Configuration.MoG in self.config_list:
+            self.grad_ll = np.hstack((self.grad_ll, self.bin_dM, self.bin_dL * self.bin_s))
+
+
+    def get_binary_sample(self):
+        return  (self.binary_normal_samples.T * np.sqrt(self.bin_s) + self.bin_m)
+
+    def get_all_params(self):
+        parent_params = super(StructureGP, self).get_all_params()
+        return np.hstack((parent_params, self.bin_m.copy(), np.log(self.bin_s.copy())))
+
+
+    def get_params(self):
+        parent_params = super(StructureGP, self).get_params()
+        return np.hstack((parent_params, self.bin_m, np.log(self.bin_s)))
+
+    def set_params(self, p):
+        self.bin_s = np.exp(p[-self.bin_m.shape[0]:])
+        self.bin_m = p[-(self.bin_m.shape[0]+self.bin_m.shape[0]):-self.bin_m.shape[0]]
+        self._update()
 

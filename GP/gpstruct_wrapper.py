@@ -4,7 +4,7 @@ from GPstruct.prepare_from_data_chain import prepare_from_data_chain
 
 
 def gpstruct_wrapper(
-    data_indices_train=np.arange(0,50),
+    data_indices_train=np.arange(0,2),
     data_indices_test=np.arange(51,53),
     task='chunking',
     data_folder=None,

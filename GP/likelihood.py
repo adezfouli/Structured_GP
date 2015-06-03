@@ -402,6 +402,7 @@ class StructLL(Likelihood):
         self.test_dataset = test_dataset
         seq_size = dataset.object_size
         last_pos = 0
+        self.labels = self.dataset.n_labels
         self.seq_poses = np.empty((seq_size.shape[0] + 1))
         for n in range(seq_size.shape[0]):
             last_pos += seq_size[n]
@@ -411,18 +412,22 @@ class StructLL(Likelihood):
         self.dim = self.dataset.n_labels + self.dataset.n_labels ** 2
         self.normal_samples = np.random.normal(0, 1, self.n_samples * self.dim) \
             .reshape((self.dim, self.n_samples))
+        self.bin_dim = self.dataset.n_labels ** 2
 
 
-    def ll_F_Y(self, F, Y):
+    def ll_F_Y(self, F, Y, model):
 
         ll = np.empty((F.shape[0], self.dataset.object_size.sum()))
-        binaries = np.eye(self.dataset.n_labels)
+        b_samples = model.get_binary_sample()
+        total_ll = 0
         for s in range(F.shape[0]):
             for n in range(self.dataset.N):
                 unaries = F[s, self.seq_poses[n]: self.seq_poses[n+1], 0:self.dataset.n_labels]
-                ll[s, self.seq_poses[n]: self.seq_poses[n+1]] = log_likelihood_function_numba(unaries, binaries, self.dataset.Y[n], self.dataset.object_size[n], self.dataset.n_labels)
+                ll_n = log_likelihood_function_numba(unaries, b_samples[s].reshape(self.labels, self.labels), self.dataset.Y[n], self.dataset.object_size[n], self.dataset.n_labels)
+                ll[s, self.seq_poses[n]: self.seq_poses[n+1]] = ll_n
+                total_ll += ll_n
 
-        return ll, None
+        return ll, None, total_ll / F.shape[0]
 
 
     def set_params(self, p):

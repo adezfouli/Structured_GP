@@ -113,47 +113,47 @@ class SAVIGP_Test:
     @staticmethod
     def test_grad(verbose=False):
         configs = [
+            # [
+            #     Configuration.MoG,
+            #     Configuration.ENTROPY,
+            #     Configuration.CROSS,
+            #     Configuration.ELL,
+            # ],
             [
                 Configuration.MoG,
                 Configuration.ENTROPY,
-                Configuration.CROSS,
-                Configuration.ELL,
             ],
             [
                 Configuration.MoG,
-                Configuration.ENTROPY,
-            ],
-            [
-                Configuration.MoG,
-                Configuration.CROSS,
-            ],
-            [
-                Configuration.MoG,
-                Configuration.ELL,
-            ],
-            [
-                Configuration.HYPER,
-                Configuration.ENTROPY,
-            ],
-            [
-                Configuration.HYPER,
                 Configuration.CROSS,
             ],
-            [
-                Configuration.HYPER,
-                Configuration.ELL,
-            ],
-            [
-                Configuration.HYPER,
-                Configuration.ELL,
-                Configuration.ENTROPY,
-                Configuration.CROSS
-            ],
-
-            [
-                Configuration.LL,
-                Configuration.ELL,
-            ]
+            # [
+            #     Configuration.MoG,
+            #     Configuration.ELL,
+            # ],
+            # [
+            #     Configuration.HYPER,
+            #     Configuration.ENTROPY,
+            # ],
+            # [
+            #     Configuration.HYPER,
+            #     Configuration.CROSS,
+            # ],
+            # [
+            #     Configuration.HYPER,
+            #     Configuration.ELL,
+            # ],
+            # [
+            #     Configuration.HYPER,
+            #     Configuration.ELL,
+            #     Configuration.ENTROPY,
+            #     Configuration.CROSS
+            # ],
+            #
+            # [
+            #     Configuration.LL,
+            #     Configuration.ELL,
+            # ]
         ]
 
         sparse = [False, True]
