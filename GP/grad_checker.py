@@ -32,7 +32,7 @@ class GradChecker:
             else:
                 aver_error += abs(t-g[i]) / abs(t)
             if verbose:
-                print 'element:', i
+                print 'element:', i, 'rel error: ', abs(t-g[i]) / abs(t), ' diff: ', abs(t-g[i])
         table.add_rows(rows)
         if verbose:
             print(table.draw())

@@ -1,30 +1,25 @@
+__author__ = 'AT'
+
 import logging
-from numpy.random import random
-from scipy.stats import uniform
+
+from structured_gp import StructureGP
+from gpstruct_wrapper import gpstruct_wrapper
+from ExtRBF import ExtRBF
 from data_source import DataSource
-from data_transformation import MeanTransformation, IdentityTransformation
+from data_transformation import IdentityTransformation
 from experiments import Experiments
 from plot_results import PlotOutput
 from savigp_diag import SAVIGP_Diag
 from savigp_single_comp import SAVIGP_SingleComponent
-
-__author__ = 'AT'
-
-from copy import deepcopy, copy
-import warnings
-from numpy.ma import trace
-from scipy.linalg import inv, det
-from sklearn import preprocessing
+from copy import deepcopy
 import GPy
 from matplotlib.pyplot import show
-from GPy.util.linalg import mdot
-import numpy as np
 from optimizer import *
 from savigp import Configuration
-from likelihood import UnivariateGaussian, MultivariateGaussian
+from likelihood import UnivariateGaussian, MultivariateGaussian, StructLL
 from grad_checker import GradChecker
 from plot import plot_fit
-from util import chol_grad, jitchol, bcolors
+from util import bcolors
 
 
 class SAVIGP_Test:
@@ -176,6 +171,66 @@ class SAVIGP_Test:
 
 
     @staticmethod
+    def test_struct():
+        np.random.seed(120)
+
+        configs = [
+            [
+                Configuration.MoG,
+                # Configuration.ENTROPY,
+                # Configuration.CROSS,
+                Configuration.ELL,
+            ],
+            [
+                Configuration.MoG,
+                Configuration.ENTROPY,
+            ],
+            [
+                Configuration.MoG,
+                Configuration.CROSS,
+            ],
+        ]
+
+
+        (ll_train,
+        posterior_marginals_test,
+        compute_error_nlm,
+        ll_test,
+        average_marginals,
+        write_marginals,
+        read_marginals,
+        n_labels,
+        Xtrain,
+        Xtest,
+         train_dataset,
+         test_dataset) = gpstruct_wrapper()
+
+        Xtrain = np.array(Xtrain.todense())
+
+        num_latent_proc = n_labels
+        kernel = [ExtRBF(Xtrain.shape[1], variance=1, lengthscale=np.array((1.,)), ARD=False) for j in range(num_latent_proc)]
+        # number of inducing points
+        num_inducing = int(Xtrain.shape[0] * 0.2)
+        num_samples = 20000
+        cond_ll = StructLL(ll_train, train_dataset, test_dataset)
+
+        s1 = StructureGP(Xtrain, np.empty((Xtrain.shape[0], 1)), num_inducing, cond_ll,
+                                      kernel, num_samples, configs[0], 0, False, True)
+
+        s1.rand_init_mog()
+
+        def f(x):
+            s1.set_params(x)
+            return s1.objective_function()
+
+        def f_grad(x):
+            s1.set_params(x)
+            return s1.objective_function_gradients()
+
+        return GradChecker.check(f, f_grad, s1.get_params(), s1.get_param_names(), verbose=True)
+
+
+    @staticmethod
     def init_test():
         np.random.seed(12000)
         num_input_samples = 3
@@ -303,5 +358,6 @@ class SAVIGP_Test:
 if __name__ == '__main__':
     # SAVIGP_Test.test_gp(True, method='full')
     # SAVIGP_Test.init_test()
-    SAVIGP_Test.test_grad()
+    # SAVIGP_Test.test_grad()
+    SAVIGP_Test.test_struct()
     # SAVIGP_Test.test_savigp({'method': 'full', 'sparse_factor': 1.0})

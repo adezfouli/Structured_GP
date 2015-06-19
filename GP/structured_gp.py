@@ -1,15 +1,15 @@
+from scipy.misc import logsumexp
+
+__author__ = 'AT'
+
 from GPy.util.linalg import mdot
 
 from scipy.linalg import block_diag, inv
 import numpy as np
 from savigp import Configuration
 
-from mog_diag import MoG_Diag
-
 from util import jitchol, inv_chol
 from savigp_single_comp import SAVIGP_SingleComponent
-
-__author__ = 'AT'
 
 
 class StructureGP(SAVIGP_SingleComponent):
@@ -30,12 +30,16 @@ class StructureGP(SAVIGP_SingleComponent):
                                           kernels, n_samples, config_list, latent_noise,
                                           is_exact_ell, inducing_on_Xs, n_threads, image, partition_size)
 
+    def rand_init_mog(self):
+        super(StructureGP, self).rand_init_mog()
+        self.bin_m = np.random.uniform(low=1., high=2., size=self.bin_m.shape[0])
+        self.bin_s = np.random.uniform(low=1., high=3., size=self.bin_s.shape[0])
+
     def _sigma(self, k, j, Kj, Aj, Kzx):
         """
         calculating [sigma_k(n)]j,j for latent process j (eq 20) for all k
         """
         return Kj + self.MoG.aSkja_full(Aj, k, j)
-
 
     def _chol_sigma(self, sigma):
         sigmas = [0] * (len(self.seq_poses) - 1)
@@ -80,17 +84,14 @@ class StructureGP(SAVIGP_SingleComponent):
         self._bin_KL()
         super(StructureGP, self)._update()
         self.ll += self.bin_ent + self.bin_NCE
-        if Configuration.MoG in self.config_list:
-            self.grad_ll = np.hstack((self.grad_ll, self.bin_dM, self.bin_dL * self.bin_s))
-
+        self.grad_ll = np.hstack((self.grad_ll, self.bin_dM, self.bin_dL * self.bin_s))
 
     def get_binary_sample(self):
-        return  (self.binary_normal_samples.T * np.sqrt(self.bin_s) + self.bin_m)
+        return self.binary_normal_samples.T * np.sqrt(self.bin_s) + self.bin_m
 
     def get_all_params(self):
         parent_params = super(StructureGP, self).get_all_params()
         return np.hstack((parent_params, self.bin_m.copy(), np.log(self.bin_s.copy())))
-
 
     def get_params(self):
         parent_params = super(StructureGP, self).get_params()
@@ -98,6 +99,37 @@ class StructureGP(SAVIGP_SingleComponent):
 
     def set_params(self, p):
         self.bin_s = np.exp(p[-self.bin_m.shape[0]:])
-        self.bin_m = p[-(self.bin_m.shape[0]+self.bin_m.shape[0]):-self.bin_m.shape[0]]
+        self.bin_m = p[-(self.bin_m.shape[0]+self.bin_s.shape[0]):-self.bin_m.shape[0]]
+        super(StructureGP, self).set_params(p[:-(self.bin_m.shape[0]+self.bin_s.shape[0])])
         self._update()
 
+    def get_param_names(self):
+        parent_names = super(StructureGP, self).get_param_names()
+        return parent_names + ['b_m'] * self.cond_likelihood.bin_dim + ['b_s'] * self.cond_likelihood.bin_dim
+
+    def _predict_comp(self, Xs, Ys):
+        A, Kzx, K = self._get_A_K(Xs)
+
+        predicted_mu = np.empty((Xs.shape[0], self.num_mog_comp, self.cond_likelihood.output_dim()))
+        predicted_var = np.empty((Xs.shape[0], self.num_mog_comp, self.cond_likelihood.output_dim()))
+        nlpd = None
+        if not (Ys is None):
+            nlpd = np.empty((Xs.shape[0], self.num_mog_comp))
+
+        mean_kj = np.empty((self.num_mog_comp, self.num_latent_proc, Xs.shape[0]))
+        sigma_kj = np.empty((self.num_mog_comp, self.num_latent_proc, Xs.shape[0]))
+        chol_sigma = np.empty((self.num_mog_comp, self.num_latent_proc, Xs.shape[0], Xs.shape[0]))
+        for k in range(self.num_mog_comp):
+            for j in range(self.num_latent_proc):
+                mean_kj[k,j] = self._b(k, j, A[j], Kzx[j].T)
+                sigma_kj[k,j] = self._sigma(k, j, K[j], A[j], Kzx[j].T)
+                chol_sigma[k,j], _, _ = self._chol_sigma(sigma_kj[k,j])
+
+            if not (Ys is None):
+                predicted_mu[:, k, :], predicted_var[:, k, :], nlpd[:, k] = \
+                    self.cond_likelihood.predict(mean_kj[k, :].T, chol_sigma[k, :].T, Ys, self)
+            else:
+                predicted_mu[:, k, :], predicted_var[:, k, :], _ = \
+                    self.cond_likelihood.predict(mean_kj[k, :].T, sigma_kj[k, :].T, Ys, self)
+
+        return predicted_mu, predicted_var, -logsumexp(nlpd, 1, self.MoG.pi)

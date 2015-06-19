@@ -4,7 +4,7 @@ from scipy.linalg import inv, det
 from scipy.misc import logsumexp
 from scipy.special import erfinv
 from scipy.special._ufuncs import gammaln
-from GPstruct.prepare_from_data_chain import log_likelihood_function_numba
+from GPstruct.prepare_from_data_chain import log_likelihood_function_numba, marginals_function
 
 from util import cross_ent_normal, drange
 
@@ -414,7 +414,6 @@ class StructLL(Likelihood):
             .reshape((self.dim, self.n_samples))
         self.bin_dim = self.dataset.n_labels ** 2
 
-
     def ll_F_Y(self, F, Y, model):
 
         ll = np.empty((F.shape[0], self.dataset.object_size.sum()))
@@ -429,7 +428,6 @@ class StructLL(Likelihood):
 
         return ll, None, total_ll / F.shape[0]
 
-
     def set_params(self, p):
         if p.shape[0] != 0:
             raise Exception("struct ll function does not have free parameters")
@@ -440,10 +438,11 @@ class StructLL(Likelihood):
     def get_num_params(self):
         return 0
 
-    def predict(self, mu, sigma, Ys, model=None):
+    def predict(self, mu, chol_sigma, Ys, model=None):
         F = np.empty((self.n_samples, mu.shape[0], self.dim))
         for j in range(self.dim):
-            F[:, :, j] = np.outer(self.normal_samples[j, :], np.sqrt(sigma[:, j])) + mu[:, j]
+            F[:, :, j] = mdot(norm_samples, chol_sigma[j])
+            F[:, :, j] = F[:, :, j] + mu[j]
 
         Ys= np.empty((self.n_samples, mu.shape[0], self.test_dataset.n_labels))
         for s in range(F.shape[0]):
