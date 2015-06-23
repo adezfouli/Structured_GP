@@ -89,8 +89,14 @@ class StructureGP(SAVIGP_SingleComponent):
         self.ll += self.bin_ent + self.bin_NCE
         self.grad_ll = np.hstack((self.grad_ll, self.bin_dM, self.bin_dL * self.bin_s))
 
-    def get_binary_sample(self):
-        return self.binary_normal_samples.T * np.sqrt(self.bin_s) + self.bin_m
+    def get_binary_sample(self, n_samples = None):
+        if n_samples is None:
+            samples = self.binary_normal_samples
+        else:
+            samples = np.random.normal(0, 1, n_samples * self.cond_likelihood.bin_dim) \
+            .reshape((self.cond_likelihood.bin_dim, n_samples))
+
+        return samples.T * np.sqrt(self.bin_s) + self.bin_m
 
     def get_all_params(self):
         parent_params = super(StructureGP, self).get_all_params()
@@ -120,7 +126,7 @@ class StructureGP(SAVIGP_SingleComponent):
             nlpd = np.empty((Xs.shape[0], self.num_mog_comp))
 
         mean_kj = np.empty((self.num_mog_comp, self.num_latent_proc, Xs.shape[0]))
-        sigma_kj = np.empty((self.num_mog_comp, self.num_latent_proc, Xs.shape[0]))
+        sigma_kj = np.empty((self.num_mog_comp, self.num_latent_proc, Xs.shape[0], Xs.shape[0]))
         chol_sigma = np.empty((self.num_mog_comp, self.num_latent_proc, Xs.shape[0], Xs.shape[0]))
         for k in range(self.num_mog_comp):
             for j in range(self.num_latent_proc):

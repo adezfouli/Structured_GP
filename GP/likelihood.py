@@ -413,6 +413,11 @@ class StructLL(Likelihood):
         self.normal_samples = np.random.normal(0, 1, self.n_samples * self.dim) \
             .reshape((self.dim, self.n_samples))
         self.bin_dim = self.dataset.n_labels ** 2
+        self.uni_dim = self.dataset.n_labels
+        self.normal_samples = np.random.normal(0, 1, self.n_samples * self.dim) \
+            .reshape((self.dim, self.n_samples))
+
+
 
     def ll_F_Y(self, F, Y, model):
 
@@ -439,21 +444,23 @@ class StructLL(Likelihood):
         return 0
 
     def predict(self, mu, chol_sigma, Ys, model=None):
-        F = np.empty((self.n_samples, mu.shape[0], self.dim))
-        for j in range(self.dim):
-            F[:, :, j] = mdot(norm_samples, chol_sigma[j])
-            F[:, :, j] = F[:, :, j] + mu[j]
+
+        self.normal_samples = np.random.normal(0, 1, self.n_samples * self.uni_dim * mu.shape[0]) \
+            .reshape((self.uni_dim, self.n_samples, mu.shape[0]))
+
+        F = np.empty((self.n_samples, mu.shape[0], self.uni_dim))
+        for j in range(self.uni_dim):
+            norm_samples = self.normal_samples[j, :, :mu.shape[0]]
+            F[:, :, j] = mdot(norm_samples, chol_sigma[:, :, j])
+            F[:, :, j] = F[:, :, j] + mu[:,j]
 
         Ys= np.empty((self.n_samples, mu.shape[0], self.test_dataset.n_labels))
+        b_samples = model.get_binary_sample(F.shape[0])
         for s in range(F.shape[0]):
-            current_pos=0
             for n in range(self.test_dataset.N):
-                unaries = F[s, current_pos:current_pos + self.test_dataset.object_size[n], 0:self.test_dataset.n_labels]
-                binaries = F[s, current_pos:current_pos + self.test_dataset.object_size[n], self.dataset.n_labels:].\
-                    reshape((self.test_dataset.object_size[n], self.test_dataset.n_labels, self.test_dataset.n_labels))
-                Ys[s, current_pos:current_pos + self.test_dataset.object_size[n], :] = \
-                    marginals_function(unaries, binaries, self.test_dataset.object_size[n], self.test_dataset.n_labels)
-                current_pos = self.test_dataset.object_size[n]
+                unaries = F[s, self.seq_poses[n]: self.seq_poses[n+1], 0:self.dataset.n_labels]
+                Ys[s, self.seq_poses[n]: self.seq_poses[n+1], :] = \
+                    marginals_function(unaries, b_samples[s].reshape(self.labels, self.labels), self.test_dataset.object_size[n], self.test_dataset.n_labels)
         return Ys.mean(axis=0), None, Ys.mean(axis=0)[:, 0]
 
     def output_dim(self):
