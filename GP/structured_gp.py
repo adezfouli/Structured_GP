@@ -59,10 +59,13 @@ class StructureGP(SAVIGP_SingleComponent):
             breaks[s] = A[self.seq_poses[s]:self.seq_poses[s + 1], self.seq_poses[s]:self.seq_poses[s + 1]]
         return breaks
 
-    def _struct_dell_ds(self, k, j, cond_ll, A, sigma_kj, norm_samples, inv_sigma):
+    def _struct_dell_ds(self, k, j, cond_ll, A, inv_sigma, sfb):
+        sbbs = sfb[:, :, np.newaxis] * sfb[:, np.newaxis, :]
         return mdot(
-            A[j].T * self._average(cond_ll, mdot(norm_samples ** 2 - np.ones((norm_samples.shape[0], 1)), inv_sigma),
-                                   True), A[j]) \
+            A[j].T, self._average(np.repeat(cond_ll, sbbs.shape[2], axis=1),
+                                   sbbs.reshape(sbbs.shape[0], sbbs.shape[1] * sbbs.shape[2]) -
+                                   inv_sigma.flatten(),
+                                   True).reshape(sbbs.shape[1], sbbs.shape[2]), A[j]) \
                * self.MoG.pi[k] / 2.
 
     def _bin_KL(self):

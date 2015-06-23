@@ -181,14 +181,14 @@ class SAVIGP_Test:
                 # Configuration.CROSS,
                 Configuration.ELL,
             ],
-            [
-                Configuration.MoG,
-                Configuration.ENTROPY,
-            ],
-            [
-                Configuration.MoG,
-                Configuration.CROSS,
-            ],
+            # [
+            #     Configuration.MoG,
+            #     Configuration.ENTROPY,
+            # ],
+            # [
+            #     Configuration.MoG,
+            #     Configuration.CROSS,
+            # ],
         ]
 
 

@@ -539,9 +539,10 @@ class SAVIGP(Model):
                 cond_ll, grad_ll, total_ell = self.cond_likelihood.ll_F_Y(F, Y, self)
                 for j in range(self.num_latent_proc):
                     norm_samples = self.normal_samples[j, :, :X.shape[0]]
-                    m = self._average(cond_ll, mdot(norm_samples, chol_sigma_inv[k,j]), True)
+                    sfb = mdot(norm_samples, chol_sigma_inv[k,j]) # sigma^ -1 (f - b)
+                    m = self._average(cond_ll, sfb, True)
                     d_ell_dm[k,j] = self._proj_m_grad(j, mdot(m, Kzx[j].T)) * self.MoG.pi[k]
-                    d_ell_ds[k,j] = self._struct_dell_ds(k, j, cond_ll, A, sigma_kj, norm_samples, sigma_inv[k,j])
+                    d_ell_ds[k,j] = self._struct_dell_ds(k, j, cond_ll, A, sigma_inv[k,j], sfb)
                     if self.calculate_dhyper():
                         ds_dhyp = self._dsigma_dhyp(j, k, A[j], Kzx, X)
                         db_dhyp = self._db_dhyp(j, k, A[j], X)
