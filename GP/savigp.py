@@ -8,10 +8,7 @@ from util import mdiag_dot, jitchol, pddet, inv_chol, nearPD, cross_ent_normal, 
 import math
 from GPy.util.linalg import mdot
 import numpy as np
-from numpy.ma import trace, vstack
 from scipy.linalg import logm, det, cho_solve, solve_triangular, block_diag
-import scipy.stats
-from GPy import likelihoods
 from GPy.core import Model
 
 
@@ -47,13 +44,15 @@ class SAVIGP(Model):
                  inducing_on_Xs=False,
                  n_threads=1,
                  image=None,
-                 max_X_partizion_size=3000):
+                 max_X_partizion_size=3000,
+                 logger=None):
 
         super(SAVIGP, self).__init__("SAVIGP")
         if config_list is None:
             self.config_list = [Configuration.CROSS, Configuration.ELL, Configuration.ENTROPY]
         else:
             self.config_list = config_list
+        self.logger = logger
         self.num_latent_proc = len(kernels)
         self.num_mog_comp = num_mog_comp
         self.num_inducing = num_inducing
@@ -113,8 +112,6 @@ class SAVIGP(Model):
             self._update_latent_kernel()
 
             self._update_inverses()
-
-            self.init_mog(init_m)
 
         self.set_configuration(self.config_list)
 
@@ -542,7 +539,8 @@ class SAVIGP(Model):
                     sfb = mdot(norm_samples, chol_sigma_inv[k,j]) # sigma^ -1 (f - b)
                     m = self._average(cond_ll, sfb, True)
                     d_ell_dm[k,j] = self._proj_m_grad(j, mdot(m, Kzx[j].T)) * self.MoG.pi[k]
-                    d_ell_ds[k,j] = self._struct_dell_ds(k, j, cond_ll, A, sigma_inv[k,j], sfb)
+                    from structured_gp import StructureGP
+                    d_ell_ds[k,j] = StructureGP._struct_dell_ds(self, k, j, cond_ll, A, sigma_inv[k,j], sfb)
                     if self.calculate_dhyper():
                         ds_dhyp = self._dsigma_dhyp(j, k, A[j], Kzx, X)
                         db_dhyp = self._db_dhyp(j, k, A[j], X)

@@ -407,7 +407,14 @@ class StructLL(Likelihood):
         for n in range(seq_size.shape[0]):
             last_pos += seq_size[n]
             self.seq_poses[n+1] = last_pos
+        last_pos = 0
+        self.test_seq_poses = np.empty((test_dataset.object_size.shape[0] + 1))
+        for n in range(test_dataset.object_size.shape[0]):
+            last_pos += test_dataset.object_size[n]
+            self.test_seq_poses[n+1] = last_pos
+
         self.seq_poses = self.seq_poses.astype(int)
+        self.test_seq_poses = self.test_seq_poses.astype(int)
         self.n_samples = 4000
         self.dim = self.dataset.n_labels + self.dataset.n_labels ** 2
         self.normal_samples = np.random.normal(0, 1, self.n_samples * self.dim) \
@@ -416,8 +423,6 @@ class StructLL(Likelihood):
         self.uni_dim = self.dataset.n_labels
         self.normal_samples = np.random.normal(0, 1, self.n_samples * self.dim) \
             .reshape((self.dim, self.n_samples))
-
-
 
     def ll_F_Y(self, F, Y, model):
 
@@ -458,9 +463,10 @@ class StructLL(Likelihood):
         b_samples = model.get_binary_sample(F.shape[0])
         for s in range(F.shape[0]):
             for n in range(self.test_dataset.N):
-                unaries = F[s, self.seq_poses[n]: self.seq_poses[n+1], 0:self.dataset.n_labels]
-                Ys[s, self.seq_poses[n]: self.seq_poses[n+1], :] = \
+                unaries = F[s, self.test_seq_poses[n]: self.test_seq_poses[n+1], 0:self.dataset.n_labels]
+                Ys[s, self.test_seq_poses[n]: self.test_seq_poses[n+1], :] = \
                     marginals_function(unaries, b_samples[s].reshape(self.labels, self.labels), self.test_dataset.object_size[n], self.test_dataset.n_labels)
+
         return Ys.mean(axis=0), None, Ys.mean(axis=0)[:, 0]
 
     def output_dim(self):

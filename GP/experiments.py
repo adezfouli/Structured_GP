@@ -196,12 +196,12 @@ class Experiments:
                         ' Obj fun: ' + str(opt_params['obj_fun']) + ' fun evals: ' + str(opt_params['total_evals']))
         if method == 'full':
             m = SAVIGP_SingleComponent(Xtrain, Ytrain, num_inducing, cond_ll,
-                                       kernel, num_samples, None, latent_noise, False, random_Z, n_threads=n_threads, image=model_image, partition_size=partition_size)
+                                       kernel, num_samples, None, latent_noise, False, random_Z, n_threads=n_threads, image=model_image, partition_size=partition_size, logger = logger)
             _, timer_per_iter, total_time, tracker, total_evals = \
                 Optimizer.optimize_model(m, opt_max_fun_evals, logger, to_optimize, xtol, opt_per_iter, max_iter, ftol, Experiments.opt_callback(folder_name), current_iter)
         if method == 'structured':
             m = StructureGP(Xtrain, Ytrain, num_inducing, cond_ll,
-                                       kernel, num_samples, None, latent_noise, False, random_Z, n_threads=n_threads, image=model_image, partition_size=partition_size)
+                                       kernel, num_samples, None, latent_noise, False, random_Z, n_threads=n_threads, image=model_image, partition_size=partition_size, logger = logger)
             _, timer_per_iter, total_time, tracker, total_evals = \
                 Optimizer.optimize_model(m, opt_max_fun_evals, logger, to_optimize, xtol, opt_per_iter, max_iter, ftol, Experiments.opt_callback(folder_name), current_iter)
 
@@ -528,10 +528,10 @@ class Experiments:
         Xtrain = np.array(Xtrain.todense())
         Xtest = np.array(Xtest.todense())
         num_latent_proc = n_labels
-        kernel = [ExtRBF(Xtrain.shape[1], variance=1, lengthscale=np.array((1.,)), ARD=False) for j in range(num_latent_proc)]
+        kernel = [ExtRBF(Xtrain.shape[1], variance=.1, lengthscale=np.array((.1,)), ARD=False) for j in range(num_latent_proc)]
         # number of inducing points
         num_inducing = int(Xtrain.shape[0] * sparsify_factor)
-        num_samples = 2000
+        num_samples = 10000
         cond_ll = StructLL(ll_train, train_dataset, test_dataset)
         names = []
         image = None
