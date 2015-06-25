@@ -59,7 +59,6 @@ class StructureGP(SAVIGP_SingleComponent):
             breaks[s] = A[self.seq_poses[s]:self.seq_poses[s + 1], self.seq_poses[s]:self.seq_poses[s + 1]]
         return breaks
 
-    # @numba.jit
     def _struct_dell_ds(self, k, j, cond_ll, A, inv_sigma, sfb):
         output = np.zeros((A.shape[2], A.shape[2]))
         for s in range(len(self.seq_poses) - 1):
@@ -133,7 +132,7 @@ class StructureGP(SAVIGP_SingleComponent):
         return parent_names + ['b_m'] * self.cond_likelihood.bin_dim + ['b_s'] * self.cond_likelihood.bin_dim
 
     def _predict_comp(self, Xs, Ys):
-        A, Kzx, K = self._get_A_K(Xs)
+        A, Kzx, K = self._get_A_K(Xs, self.cond_likelihood.test_seq_poses)
 
         predicted_mu = np.empty((Xs.shape[0], self.num_mog_comp, self.cond_likelihood.output_dim()))
         predicted_var = np.empty((Xs.shape[0], self.num_mog_comp, self.cond_likelihood.output_dim()))

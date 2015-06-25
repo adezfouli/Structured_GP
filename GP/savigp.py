@@ -407,11 +407,11 @@ class SAVIGP(Model):
         """
         return cho_solve((self.chol[j, :, :], True), K).T
 
-    def _Kdiag(self, p_X, K, A, j):
+    def _Kdiag(self, p_X, K, A, j, seq_poses):
         """
         calculating diagonal terms of K_tilda for latent process j (eq 4)
         """
-        pxs = np.split(p_X, self.seq_poses[1:-1], axis=0)
+        pxs = np.split(p_X, seq_poses[1:-1], axis=0)
         return block_diag(*tuple([self.kernels_latent[j].K(psx_i) for psx_i in pxs])) - mdot(A, K)
 
 
@@ -429,14 +429,14 @@ class SAVIGP(Model):
         return Kj + self.MoG.aSkja(Aj, k, j)
 
     # @profile
-    def _get_A_K(self, p_X):
+    def _get_A_K(self, p_X, seq_poses):
         A = np.empty((self.num_latent_proc, len(p_X), self.num_inducing))
         K = np.empty((self.num_latent_proc, len(p_X), len(p_X)))
         Kzx = np.empty((self.num_latent_proc, self.num_inducing, p_X.shape[0]))
         for j in range(self.num_latent_proc):
             Kzx[j, :, :] = self.kernels_latent[j].K(self.Z[j, :, :], p_X)
             A[j] = self._A(j, Kzx[j, :, :])
-            K[j] = self._Kdiag(p_X, Kzx[j, :, :], A[j], j)
+            K[j] = self._Kdiag(p_X, Kzx[j, :, :], A[j], j, seq_poses)
         return A, Kzx, K
 
     def _dell_ds(self, k, j, cond_ll, A, n_sample, sigma_kj):
@@ -515,7 +515,7 @@ class SAVIGP(Model):
             self.calculate_dhyper():
             total_ell = 0
             if self.A_cached is None:
-                self.A_cached, self.Kzx_cached, self.K_cached = self._get_A_K(X)
+                self.A_cached, self.Kzx_cached, self.K_cached = self._get_A_K(X, self.seq_poses)
             A = self.A_cached
             Kzx = self.Kzx_cached
             K = self.K_cached
