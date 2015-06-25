@@ -216,8 +216,8 @@ class Optimizer:
                     logger.info('mog params')
                     model.set_configuration([
                         Configuration.MoG,
-                        Configuration.ENTROPY,
-                        Configuration.CROSS,
+                        # Configuration.ENTROPY,
+                        # Configuration.CROSS,
                         Configuration.ELL,
                     ])
                     d, tracker = Optimizer.BFGS(model, logger, max_fun=iters_per_opt['mog'])

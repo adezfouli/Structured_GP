@@ -424,16 +424,20 @@ class StructLL(Likelihood):
         self.normal_samples = np.random.normal(0, 1, self.n_samples * self.dim) \
             .reshape((self.dim, self.n_samples))
 
-    def ll_F_Y(self, F, Y, model):
+    def ll_F_Y(self, F, Y_inx, X_inx, model):
 
-        ll = np.empty((F.shape[0], self.dataset.object_size.sum()))
+        ll = np.empty((F.shape[0], F.shape[1]))
         b_samples = model.get_binary_sample()
         total_ll = 0
         for s in range(F.shape[0]):
-            for n in range(self.dataset.N):
-                unaries = F[s, self.seq_poses[n]: self.seq_poses[n+1], 0:self.dataset.n_labels]
-                ll_n = log_likelihood_function_numba(unaries, b_samples[s].reshape(self.labels, self.labels), self.dataset.Y[n], self.dataset.object_size[n], self.dataset.n_labels)
-                ll[s, self.seq_poses[n]: self.seq_poses[n+1]] = ll_n
+            for n in range(len(Y_inx)):
+                unaries = F[s, X_inx[n]: X_inx[n+1], 0:self.dataset.n_labels]
+                try:
+                    ll_n = log_likelihood_function_numba(unaries, b_samples[s].reshape(self.labels, self.labels), self.dataset.Y[Y_inx[n]], self.dataset.object_size[Y_inx[n]], self.dataset.n_labels)
+                    # ll_n = 10
+                except Exception as e:
+                    pass
+                ll[s, X_inx[n]: X_inx[n+1]] = ll_n
                 total_ll += ll_n
 
         return ll, None, total_ll / F.shape[0]

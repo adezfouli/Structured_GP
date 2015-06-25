@@ -1,6 +1,5 @@
 __author__ = 'AT'
 
-import numba
 from scipy.misc import logsumexp
 from GPy.util.linalg import mdot
 from scipy.linalg import block_diag, inv
@@ -32,16 +31,30 @@ class StructureGP(SAVIGP_SingleComponent):
         self.bin_m = np.random.uniform(low=1., high=2., size=self.bin_m.shape[0])
         self.bin_s = np.random.uniform(low=1., high=3., size=self.bin_s.shape[0])
 
+    def _partition_data(self, X, Y):
+        X_paritions = []
+        Y_paritions = []
+        paritions = np.array_split(range(self.seq_poses.shape[0]-1), min(self.n_threads, self.seq_poses.shape[0]-1))
+        max_partition_size = None
+        for p in paritions:
+            Y_paritions.append(p)
+            X_paritions.append(self._get_X_indices(p))
+            if max_partition_size is None or self.seq_poses[p[-1]+1] - self.seq_poses[p[0]] +1 > max_partition_size:
+                max_partition_size = self.seq_poses[p[-1]+1] - self.seq_poses[p[0]] +1
+
+        return X_paritions, Y_paritions, self.n_threads, max_partition_size
+
     def _sigma(self, k, j, Kj, Aj, Kzx):
         """
         calculating [sigma_k(n)]j,j for latent process j (eq 20) for all k
         """
         return Kj + self.MoG.aSkja_full(Aj, k, j)
 
-    def _chol_sigma(self, sigma, seq_poses = None):
+    def _chol_sigma(self, sigma, seq_poses=None):
         if seq_poses is None:
             seq_poses = self.seq_poses
 
+        seq_poses = seq_poses - seq_poses[0]
         sigmas = [0] * (len(seq_poses) - 1)
         inv_sigmas = [0] * (len(seq_poses) - 1)
         inv_sigmas_chol = [0] * (len(seq_poses) - 1)
@@ -158,3 +171,4 @@ class StructureGP(SAVIGP_SingleComponent):
                     self.cond_likelihood.predict(mean_kj[k, :].T, sigma_kj[k, :].T, Ys, self)
 
         return predicted_mu, predicted_var, -logsumexp(nlpd, 1, self.MoG.pi)
+

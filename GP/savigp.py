@@ -241,6 +241,10 @@ class SAVIGP(Model):
             self.chol[j, :, :] = jitchol(self.Kzz[j, :, :])
             self.invZ[j, :, :] = inv_chol(self.chol[j, :, :])
             self.log_detZ[j] = pddet(self.chol[j, :, :])
+
+        if self.A_cached is None:
+            self.A_cached, self.Kzx_cached, self.K_cached = self._get_A_K(self.X, self.seq_poses)
+
         self.hypers_changed = False
 
     def kernel_hyp_params(self):
@@ -291,6 +295,7 @@ class SAVIGP(Model):
         if Configuration.ELL in self.config_list:
             xell, xdell_dm, xdell_ds, xdell_dpi, xdell_hyper, xdell_dll = self._ell()
             self.cached_ell = xell
+            print xell
             self.ll += xell
             if Configuration.MoG in self.config_list:
                 grad_m += xdell_dm
@@ -407,12 +412,11 @@ class SAVIGP(Model):
         """
         return cho_solve((self.chol[j, :, :], True), K).T
 
-    def _Kdiag(self, p_X, K, A, j):
+    def _Kdiag(self, p_X, K, A, j, seq_poses):
         """
         calculating diagonal terms of K_tilda for latent process j (eq 4)
         """
-        pxs = np.split(p_X, self.seq_poses[1:-1], axis=0)
-        return block_diag(*tuple([self.kernels_latent[j].K(psx_i) for psx_i in pxs])) - mdot(A, K)
+        return block_diag(*tuple([self.kernels_latent[j].K(p_X[seq_poses[s]:seq_poses[s+1], :]) for s in range(len(seq_poses)-1)])) - mdot(A, K)
 
 
     def _b(self, k, j, Aj, Kzx):
@@ -429,15 +433,20 @@ class SAVIGP(Model):
         return Kj + self.MoG.aSkja(Aj, k, j)
 
     # @profile
-    def _get_A_K(self, p_X):
-        A = np.empty((self.num_latent_proc, len(p_X), self.num_inducing))
-        K = np.empty((self.num_latent_proc, len(p_X), len(p_X)))
-        Kzx = np.empty((self.num_latent_proc, self.num_inducing, p_X.shape[0]))
+    def _get_A_K(self, p_X, seq_poses):
+        X = p_X[seq_poses[0]:seq_poses[-1], :]
+        Xsize = seq_poses[-1] - seq_poses[0]
+        A = np.empty((self.num_latent_proc, Xsize, self.num_inducing))
+        K = np.empty((self.num_latent_proc, Xsize, Xsize))
+        Kzx = np.empty((self.num_latent_proc, self.num_inducing, Xsize))
         for j in range(self.num_latent_proc):
-            Kzx[j, :, :] = self.kernels_latent[j].K(self.Z[j, :, :], p_X)
+            Kzx[j, :, :] = self.kernels_latent[j].K(self.Z[j, :, :], X)
             A[j] = self._A(j, Kzx[j, :, :])
-            K[j] = self._Kdiag(p_X, Kzx[j, :, :], A[j], j)
+            K[j] = self._Kdiag(p_X, Kzx[j, :, :], A[j], j, seq_poses)
         return A, Kzx, K
+
+    def _subset(self, X, poses):
+        pass
 
     def _dell_ds(self, k, j, cond_ll, A, n_sample, sigma_kj):
         raise Exception("method not implemented")
@@ -477,7 +486,7 @@ class SAVIGP(Model):
 
         total_out = []
         threads = []
-        for p in range(0, self.n_partitions):
+        for p in range(len(self.X_paritions)):
             t = MyThread(self, self.X_paritions[p], self.Y_paritions[p], total_out)
             threads.append(t)
             t.start()
@@ -488,12 +497,13 @@ class SAVIGP(Model):
         return total_out[0]
 
 
-    def _parition_ell(self, X, Y):
+    def _parition_ell(self, X_ind, Y_ind):
         """
         calculating expected log-likelihood, and it's derivatives
         :returns ell, normal ell, dell / dm, dell / ds, dell/dpi
         """
 
+        x_size = X_ind[-1] - X_ind[0]
         # print 'ell started'
         total_ell = self.cached_ell
         d_ell_dm = np.zeros((self.num_mog_comp, self.num_latent_proc, self.num_inducing))
@@ -514,33 +524,30 @@ class SAVIGP(Model):
             self.cached_ell is None or \
             self.calculate_dhyper():
             total_ell = 0
-            if self.A_cached is None:
-                self.A_cached, self.Kzx_cached, self.K_cached = self._get_A_K(X)
-            A = self.A_cached
-            Kzx = self.Kzx_cached
-            K = self.K_cached
-            mean_kj = np.empty((self.num_mog_comp, self.num_latent_proc, X.shape[0]))
-            sigma_kj = np.empty((self.num_mog_comp, self.num_latent_proc, X.shape[0], X.shape[0]))
-            chol_sigma = np.empty((self.num_mog_comp, self.num_latent_proc, X.shape[0], X.shape[0]))
-            chol_sigma_inv = np.empty((self.num_mog_comp, self.num_latent_proc, X.shape[0], X.shape[0]))
-            sigma_inv = np.empty((self.num_mog_comp, self.num_latent_proc, X.shape[0], X.shape[0]))
-            F = np.empty((self.n_samples, X.shape[0], self.num_latent_proc))
+            A = self.A_cached[:, X_ind[0]:X_ind[-1], :]
+            Kzx = self.Kzx_cached[:, :, X_ind[0]:X_ind[-1]]
+            K = self.K_cached[:, X_ind[0]:X_ind[-1], X_ind[0]:X_ind[-1]]
+            mean_kj = np.empty((self.num_mog_comp, self.num_latent_proc, x_size))
+            sigma_kj = np.empty((self.num_mog_comp, self.num_latent_proc, x_size, x_size))
+            chol_sigma = np.empty((self.num_mog_comp, self.num_latent_proc, x_size, x_size))
+            chol_sigma_inv = np.empty((self.num_mog_comp, self.num_latent_proc, x_size, x_size))
+            sigma_inv = np.empty((self.num_mog_comp, self.num_latent_proc, x_size, x_size))
+            F = np.empty((self.n_samples, x_size, self.num_latent_proc))
             for k in range(self.num_mog_comp):
                 for j in range(self.num_latent_proc):
-                    norm_samples = self.normal_samples[j, :, :X.shape[0]]
+                    norm_samples = self.normal_samples[j, :, :x_size]
                     mean_kj[k,j] = self._b(k, j, A[j], Kzx[j].T)
                     sigma_kj[k,j] = self._sigma(k, j, K[j], A[j], Kzx[j].T)
-                    chol_sigma[k,j], chol_sigma_inv[k,j], sigma_inv[k,j] = self._chol_sigma(sigma_kj[k,j])
+                    chol_sigma[k,j], chol_sigma_inv[k,j], sigma_inv[k,j] = self._chol_sigma(sigma_kj[k,j], X_ind - X_ind[0])
                     F[:, :, j] = mdot(norm_samples, chol_sigma[k,j])
                     F[:, :, j] = F[:, :, j] + mean_kj[k,j]
-                cond_ll, grad_ll, total_ell = self.cond_likelihood.ll_F_Y(F, Y, self)
+                cond_ll, grad_ll, total_ell = self.cond_likelihood.ll_F_Y(F, Y_ind, X_ind - X_ind[0], self)
                 for j in range(self.num_latent_proc):
-                    norm_samples = self.normal_samples[j, :, :X.shape[0]]
+                    norm_samples = self.normal_samples[j, :, :x_size]
                     sfb = mdot(norm_samples, chol_sigma_inv[k,j]) # sigma^ -1 (f - b)
                     m = self._average(cond_ll, sfb, True)
                     d_ell_dm[k,j] = self._proj_m_grad(j, mdot(m, Kzx[j].T)) * self.MoG.pi[k]
-                    from structured_gp import StructureGP
-                    d_ell_ds[k,j] = StructureGP._struct_dell_ds(self, k, j, cond_ll, A, sigma_inv[k,j], sfb)
+                    d_ell_ds[k,j] = self._struct_dell_ds(k, j, cond_ll, A, sigma_inv[k,j], sfb)
                     if self.calculate_dhyper():
                         ds_dhyp = self._dsigma_dhyp(j, k, A[j], Kzx, X)
                         db_dhyp = self._db_dhyp(j, k, A[j], X)
@@ -557,13 +564,11 @@ class SAVIGP(Model):
                 if Configuration.LL in self.config_list:
                     d_ell_d_ll += self.MoG.pi[k] * grad_ll.sum() / self.n_samples
 
-            if self.is_exact_ell:
-                total_ell = 0
-                for n in range(len(X)):
-                    for k in range(self.num_mog_comp):
-                            total_ell += self.cond_likelihood.ell(np.array(mean_kj[k, :, n]), np.array(sigma_kj[k, :, n]), Y[n, :]) * self.MoG.pi[k]
 
         return total_ell, d_ell_dm, d_ell_ds, d_ell_dPi, d_ell_d_hyper, d_ell_d_ll
+
+    def _get_X_indices(self, poses):
+        return self.seq_poses[poses.min():poses.max() + 2]
 
     def _average(self, condll, X, variance_reduction):
         if variance_reduction:
