@@ -432,7 +432,8 @@ class StructLL(Likelihood):
         for s in range(F.shape[0]):
             for n in range(self.dataset.N):
                 unaries = F[s, self.seq_poses[n]: self.seq_poses[n+1], 0:self.dataset.n_labels]
-                ll_n = log_likelihood_function_numba(unaries, b_samples[s].reshape(self.labels, self.labels), self.dataset.Y[n], self.dataset.object_size[n], self.dataset.n_labels)
+                ll_n = log_likelihood_function_numba(unaries, b_samples[s].reshape(self.labels, self.labels), self.dataset.Y[n],
+                                                     self.dataset.object_size[n], self.dataset.n_labels)
                 ll[s, self.seq_poses[n]: self.seq_poses[n+1]] = ll_n
                 total_ll += ll_n
 
@@ -456,8 +457,10 @@ class StructLL(Likelihood):
         F = np.empty((self.n_samples, mu.shape[0], self.uni_dim))
         for j in range(self.uni_dim):
             norm_samples = self.normal_samples[j, :, :mu.shape[0]]
-            F[:, :, j] = mdot(norm_samples, chol_sigma[:, :, j])
+            F[:, :, j] = mdot(norm_samples, chol_sigma[:, :, j].T)
             F[:, :, j] = F[:, :, j] + mu[:,j]
+
+        # F = L * N + mu
 
         Ys= np.empty((self.n_samples, mu.shape[0], self.test_dataset.n_labels))
         b_samples = model.get_binary_sample(F.shape[0])

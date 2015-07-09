@@ -528,7 +528,7 @@ class Experiments:
         Xtrain = np.array(Xtrain.todense())
         Xtest = np.array(Xtest.todense())
         num_latent_proc = n_labels
-        kernel = [ExtRBF(Xtrain.shape[1], variance=.1, lengthscale=np.array((.1,)), ARD=False) for j in range(num_latent_proc)]
+        kernel = [ExtRBF(Xtrain.shape[1], variance=1.0, lengthscale=np.array(100), ARD=False) for j in range(num_latent_proc)]
         # number of inducing points
         num_inducing = int(Xtrain.shape[0] * sparsify_factor)
         num_samples = 10000
@@ -546,9 +546,9 @@ class Experiments:
             Experiments.run_model(Xtest, Xtrain, Ytest, np.empty((Xtrain.shape[0], 1)), cond_ll, kernel, method, name, 1, num_inducing,
                                   num_samples, sparsify_factor, ['mog'], IdentityTransformation, True,
                                   config['log_level'], False,  latent_noise=0.001,
-                                  opt_per_iter={'mog': 10, 'hyp': 3},
-                                  max_iter=1, n_threads=20,
-                                   model_image_file=image))
+                                  opt_per_iter={'mog': 20, 'hyp': 3},
+                                  max_iter=4, n_threads=1,
+                                  model_image_file=image))
 
     @staticmethod
     def sarcos_data(config):

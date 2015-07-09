@@ -115,13 +115,13 @@ class ExperimentRunner:
 
     @staticmethod
     def struct_experiment():
-        Experiments.struct_data({'method': 'structured', 'sparse_factor': 0.1, 'run_id': 1, 'log_level': logging.DEBUG})
+        Experiments.struct_data({'method': 'structured', 'sparse_factor': 1.0, 'run_id': 1, 'log_level': logging.DEBUG})
 
 
     @staticmethod
     def plot():
         PlotOutput.plot_output_all('boston', Experiments.get_output_path(),
-                                   lambda x: x['method'] == 'full', False)
+                                   lambda x: x['method'] == 'structured', False)
 
         # plots all the files
         # PlotOutput.plot_output_all('boston', Experiments.get_output_path(),

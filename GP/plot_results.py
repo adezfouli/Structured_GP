@@ -6,7 +6,7 @@ from matplotlib.lines import Line2D
 from matplotlib.pyplot import show, ion, savefig
 import pandas
 from pandas.util.testing import DataFrame, Series
-from likelihood import SoftmaxLL, LogisticLL, UnivariateGaussian, LogGaussianCox, WarpLL
+from likelihood import SoftmaxLL, LogisticLL, UnivariateGaussian, LogGaussianCox, WarpLL, StructLL
 from util import check_dir_exists
 import numpy as np
 import matplotlib.pyplot as plt
@@ -24,7 +24,7 @@ class PlotOutput:
         for m in model_names:
             data_config = PlotOutput.read_config(infile_path + m + '/' + 'config_' + '.csv')
             if filter is None or filter(data_config):
-                data_test = pandas.read_csv(infile_path + m + '/' + 'test_' +  '.csv')
+                data_test = pandas.read_csv(infile_path + m + '/' + 'test_' + '.csv')
                 cols = data_test.columns
                 dim = 0
                 for element in cols:
@@ -55,7 +55,7 @@ class PlotOutput:
                                                                  ).mean()]))
                     PlotOutput.add_to_list(graphs['NLPD'], PlotOutput.config_to_str(data_config), NLPD)
 
-                if data_config['ll'] in [SoftmaxLL.__name__]:
+                if data_config['ll'] in [SoftmaxLL.__name__, StructLL.__name__]:
                     NLPD = np.array(data_test['nlpd'])
                     PlotOutput.add_to_list(graphs['ER'], PlotOutput.config_to_str(data_config), np.array(
                         [(np.argmax(Ytrue, axis=0) != np.argmax(Ypred, axis=0)).mean()]))

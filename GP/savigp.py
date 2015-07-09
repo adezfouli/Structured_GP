@@ -509,6 +509,7 @@ class SAVIGP(Model):
         else:
             d_ell_d_ll = 0
 
+        # self.rand_init_mog()
         if Configuration.MoG in self.config_list or \
             Configuration.LL in self.config_list or \
             self.cached_ell is None or \
@@ -531,7 +532,7 @@ class SAVIGP(Model):
                     mean_kj[k,j] = self._b(k, j, A[j], Kzx[j].T)
                     sigma_kj[k,j] = self._sigma(k, j, K[j], A[j], Kzx[j].T)
                     chol_sigma[k,j], chol_sigma_inv[k,j], sigma_inv[k,j] = self._chol_sigma(sigma_kj[k,j])
-                    F[:, :, j] = mdot(norm_samples, chol_sigma[k,j])
+                    F[:, :, j] = mdot(norm_samples, chol_sigma[k,j].T)
                     F[:, :, j] = F[:, :, j] + mean_kj[k,j]
                 cond_ll, grad_ll, total_ell = self.cond_likelihood.ll_F_Y(F, Y, self)
                 for j in range(self.num_latent_proc):

@@ -1,16 +1,11 @@
 __author__ = 'AT'
 
 import math
-from GPy.util.linalg import mdot
-# import nlopt
-from numpy.ma import concatenate
-from scipy.linalg import inv
 from scipy.optimize import fmin_l_bfgs_b, minimize, fmin_cg
 import numpy as np
 import time
 from util import JitChol
 from savigp import Configuration
-
 
 
 class Optimizer:
@@ -84,7 +79,8 @@ class Optimizer:
                 update(X)
             obj = model.objective_function()
             tracker.append(obj)
-            logger.debug('objective:' + "%.4f" % model.objective_function())
+            logger.debug('objective:' + "%.4f" % model.objective_function() +
+                         ' ell: ' + "%.4f" % model.cached_ell)
             return obj
 
         def f_grad(X=None):
