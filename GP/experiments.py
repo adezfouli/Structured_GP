@@ -54,7 +54,7 @@ class Experiments:
             data = np.hstack((Ytrain, Xtrain))
             header += ['X%d,' % (j) for j in range(Xtrain.shape[1])]
         else:
-            data = np.hstack((Ytrain))
+            data = Ytrain
         np.savetxt(path + file_name + '.csv', data , header=''.join(header), delimiter=',', comments='')
 
 
@@ -158,6 +158,8 @@ class Experiments:
         Xtrain = transformer.transform_X(Xtrain)
         Xtest = transformer.transform_X(Xtest)
 
+        Experiments.export_train(folder_name, transformer.untransform_X(Xtrain), transformer.untransform_Y(Ytrain), export_X)
+
         opt_max_fun_evals = None
         total_time = None
         timer_per_iter = None
@@ -223,7 +225,6 @@ class Experiments:
         y_pred, var_pred, nlpd = m.predict(Xtest, Ytest)
         if not (tracker is None):
             Experiments.export_track(folder_name, tracker)
-        Experiments.export_train(folder_name, transformer.untransform_X(Xtrain), transformer.untransform_Y(Ytrain), export_X)
         Experiments.export_test(folder_name,
                                 transformer.untransform_X(Xtest),
                                 transformer.untransform_Y(Ytest),
@@ -542,8 +543,12 @@ class Experiments:
         Ytest_labels = np.hstack(np.array(test_dataset.Y))
         Ytest = np.zeros((Xtest.shape[0], test_dataset.n_labels))
         Ytest[np.arange(Xtest.shape[0]), Ytest_labels] = 1
+
+        Ytrain_labels = np.hstack(np.array(train_dataset.Y))
+        Ytrain = np.zeros((Xtrain.shape[0], train_dataset.n_labels))
+        Ytrain[np.arange(Xtrain.shape[0]), Ytrain_labels] = 1
         names.append(
-            Experiments.run_model(Xtest, Xtrain, Ytest, np.empty((Xtrain.shape[0], 1)), cond_ll, kernel, method, name, 1, num_inducing,
+            Experiments.run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, 1, num_inducing,
                                   num_samples, sparsify_factor, ['mog'], IdentityTransformation, True,
                                   config['log_level'], False,  latent_noise=0.001,
                                   opt_per_iter={'mog': 20, 'hyp': 3},
