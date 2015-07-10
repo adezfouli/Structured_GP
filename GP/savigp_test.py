@@ -215,7 +215,8 @@ class SAVIGP_Test:
         cond_ll = StructLL(ll_train, train_dataset, test_dataset)
 
         s1 = StructureGP(Xtrain, np.empty((Xtrain.shape[0], 1)), num_inducing, cond_ll,
-                                      kernel, num_samples, configs[0], 0, False, True)
+                                      kernel, num_samples, configs[0], 0, False, True,
+                                      logger= Experiments.get_logger('test_' + Experiments.get_ID(), logging.DEBUG))
 
         s1.rand_init_mog()
 
