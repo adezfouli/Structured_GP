@@ -1,6 +1,7 @@
 import logging
 import math
 import pickle
+from GPy.kern import Linear
 from ExtRBF import ExtRBF
 from structured_gp import StructureGP
 from gpstruct_wrapper import gpstruct_wrapper
@@ -529,7 +530,9 @@ class Experiments:
         Xtrain = np.array(Xtrain.todense())
         Xtest = np.array(Xtest.todense())
         num_latent_proc = n_labels
-        kernel = [ExtRBF(Xtrain.shape[1], variance=1.0, lengthscale=np.array(100), ARD=False) for j in range(num_latent_proc)]
+        # kernel = [ExtRBF(Xtrain.shape[1], variance=1.0, lengthscale=np.array(100), ARD=False) for j in range(num_latent_proc)]
+        # kernel = [ExtRBF(Xtrain.shape[1], lengthscale = 0.0005, ARD=False, variance=1) for j in range(num_latent_proc)]
+        kernel = [Linear(Xtrain.shape[1], ARD=False, variances=0.001) for j in range(num_latent_proc)]
         # number of inducing points
         num_inducing = int(Xtrain.shape[0] * sparsify_factor)
         num_samples = 10000
@@ -551,8 +554,8 @@ class Experiments:
             Experiments.run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, 1, num_inducing,
                                   num_samples, sparsify_factor, ['mog'], IdentityTransformation, True,
                                   config['log_level'], False,  latent_noise=0.001,
-                                  opt_per_iter={'mog': 20, 'hyp': 3},
-                                  max_iter=4, n_threads=1,
+                                  opt_per_iter={'mog': 60, 'hyp': 3},
+                                  max_iter=1, n_threads=1,
                                   model_image_file=image))
 
     @staticmethod

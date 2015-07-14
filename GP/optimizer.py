@@ -80,7 +80,10 @@ class Optimizer:
             obj = model.objective_function()
             tracker.append(obj)
             logger.debug('objective:' + "%.4f" % model.objective_function() +
-                         ' ell: ' + "%.4f" % model.cached_ell)
+                         ' ell: ' + "%.4f" % model.cached_ell +
+                         ' ent bin: ' + "%.4f" % model.bin_ent +
+                         ' NCE bin: ' + "%.4f" % model.bin_NCE)
+
             return obj
 
         def f_grad(X=None):
