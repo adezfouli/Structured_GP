@@ -534,7 +534,9 @@ class SAVIGP(Model):
                     chol_sigma[k,j], chol_sigma_inv[k,j], sigma_inv[k,j] = self._chol_sigma(sigma_kj[k,j])
                     F[:, :, j] = mdot(norm_samples, chol_sigma[k,j].T)
                     F[:, :, j] = F[:, :, j] + mean_kj[k,j]
-                cond_ll, grad_ll, total_ell = self.cond_likelihood.ll_F_Y(F, Y, self)
+                F_B = self.get_binary_sample()
+                cond_ll, grad_ll, total_ell, sum_ll = self.cond_likelihood.ll_F_Y(F, Y, F_B)
+                self._update_bin_grad(F_B, sum_ll)
                 for j in range(self.num_latent_proc):
                     norm_samples = self.normal_samples[j, :, :X.shape[0]]
                     sfb = mdot(norm_samples, chol_sigma_inv[k,j]) # sigma^ -1 (f - b)

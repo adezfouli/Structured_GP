@@ -424,11 +424,11 @@ class StructLL(Likelihood):
         self.normal_samples = np.random.normal(0, 1, self.n_samples * self.dim) \
             .reshape((self.dim, self.n_samples))
 
-    def ll_F_Y(self, F, Y, model):
+    def ll_F_Y(self, F, Y, b_samples):
 
         ll = np.empty((F.shape[0], self.dataset.object_size.sum()))
-        b_samples = model.get_binary_sample()
         total_ll = 0
+        sum_ll = np.zeros((F.shape[0]))
         for s in range(F.shape[0]):
             for n in range(self.dataset.N):
                 unaries = F[s, self.seq_poses[n]: self.seq_poses[n+1], 0:self.dataset.n_labels]
@@ -436,8 +436,9 @@ class StructLL(Likelihood):
                                                      self.dataset.object_size[n], self.dataset.n_labels)
                 ll[s, self.seq_poses[n]: self.seq_poses[n+1]] = ll_n
                 total_ll += ll_n
+                sum_ll[s] += ll_n
 
-        return ll, None, total_ll / F.shape[0]
+        return ll, None, total_ll / F.shape[0], sum_ll
 
     def set_params(self, p):
         if p.shape[0] != 0:

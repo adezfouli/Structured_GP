@@ -1,3 +1,5 @@
+from GP.savigp import Configuration
+
 __author__ = 'AT'
 
 import numba
@@ -28,10 +30,14 @@ class StructureGP(SAVIGP_SingleComponent):
                                           kernels, n_samples, config_list, latent_noise,
                                           is_exact_ell, inducing_on_Xs, n_threads, image, partition_size, logger)
 
+    def _update_bin_grad(self, F_B, sum_ll):
+        self.dbin_m_ell = (((F_B - self.bin_m)/self.bin_s).T * sum_ll).mean(axis=1)
+        self.dbin_s_ell = ((np.square((F_B - self.bin_m) / self.bin_s) - 1. / self.bin_s).T * sum_ll).mean(axis=1) / 2
+
     def rand_init_mog(self):
         super(StructureGP, self).rand_init_mog()
-        self.bin_m = np.random.uniform(low=1., high=2., size=self.bin_m.shape[0])
-        self.bin_s = np.random.uniform(low=1., high=3., size=self.bin_s.shape[0])
+        self.bin_m = np.random.uniform(low=.1, high=100., size=self.bin_m.shape[0])
+        self.bin_s = np.random.uniform(low=1, high=1, size=self.bin_s.shape[0])
 
     def _sigma(self, k, j, Kj, Aj, Kzx):
         """
@@ -103,8 +109,17 @@ class StructureGP(SAVIGP_SingleComponent):
     def _update(self):
         self._bin_KL()
         super(StructureGP, self)._update()
-        self.ll += self.bin_ent + self.bin_NCE
-        self.grad_ll = np.hstack((self.grad_ll, self.bin_dM, self.bin_dL * self.bin_s))
+        bin_dM = np.zeros(self.bin_dM.shape)
+        bin_dL = np.zeros(self.bin_dL.shape)
+        if Configuration.CROSS in self.config_list and Configuration.ENTROPY in self.config_list:
+            self.ll += self.bin_ent + self.bin_NCE
+            bin_dM += self.bin_dM
+            bin_dL += self.bin_dL * self.bin_s
+        if Configuration.ELL in self.config_list:
+            bin_dM += self.dbin_m_ell
+            bin_dL += self.dbin_s_ell * self.bin_s
+
+        self.grad_ll = np.hstack((self.grad_ll, bin_dM, bin_dL))
 
     def get_binary_sample(self, n_samples = None):
         if n_samples is None:
