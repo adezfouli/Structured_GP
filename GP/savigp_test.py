@@ -210,7 +210,7 @@ class SAVIGP_Test:
         num_latent_proc = n_labels
         kernel = [ExtRBF(Xtrain.shape[1], variance=1, lengthscale=np.array((1.,)), ARD=False) for j in range(num_latent_proc)]
         # number of inducing points
-        num_inducing = int(Xtrain.shape[0] * 0.2)
+        num_inducing = int(Xtrain.shape[0] * 1)
         num_samples = 20000
         cond_ll = StructLL(ll_train, train_dataset, test_dataset)
 

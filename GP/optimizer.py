@@ -82,7 +82,8 @@ class Optimizer:
             logger.debug('objective:' + "%.4f" % model.objective_function() +
                          ' ell: ' + "%.4f" % model.cached_ell +
                          ' ent bin: ' + "%.4f" % model.bin_ent +
-                         ' NCE bin: ' + "%.4f" % model.bin_NCE)
+                         ' NCE bin: ' + "%.4f" % model.bin_NCE +
+                         ' KL bin: ' + "%.4f" % (model.bin_NCE + model.bin_ent))
 
             return obj
 
