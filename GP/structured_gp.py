@@ -20,24 +20,34 @@ class StructureGP(SAVIGP_SingleComponent):
         self.bin_s = np.ones(likelihood.bin_dim)
         self.bin_noise = 0.1
         self.bin_kernel = np.eye(likelihood.bin_dim) * self.bin_noise
+        self.bin_s = np.diagonal(self.bin_kernel)
+        self.bin_batch_size = 1
+        self.binary_normal_samples = np.random.normal(0, 1, (n_samples / self.bin_batch_size) * likelihood.bin_dim) \
+            .reshape((likelihood.bin_dim, n_samples / self.bin_batch_size))
+
+        self.binary_normal_samples = self.binary_normal_samples.repeat(self.bin_batch_size, 1)
         logger.debug("bin noise: " + str(self.bin_noise))
         np.random.seed(12000)
 
-        self.binary_normal_samples = np.random.normal(0, 1, n_samples * likelihood.bin_dim) \
-            .reshape((likelihood.bin_dim, n_samples))
 
         super(StructureGP, self).__init__(X, Y, num_inducing, likelihood,
                                           kernels, n_samples, config_list, latent_noise,
                                           is_exact_ell, inducing_on_Xs, n_threads, image, partition_size, logger)
 
     def _update_bin_grad(self, F_B, sum_ll):
-        self.dbin_m_ell = (((F_B - self.bin_m)/self.bin_s).T * sum_ll).mean(axis=1)
-        self.dbin_s_ell = ((np.square((F_B - self.bin_m) / self.bin_s) - 1. / self.bin_s).T * sum_ll).mean(axis=1) / 2
+        N = self.bin_batch_size
+        avg_ll = np.cumsum(sum_ll, 0)[N-1::N]
+        avg_ll[1:] = avg_ll[1:] - avg_ll[:-1]
+        avg_ll /= float(N)
+        F_B = F_B[range(0, F_B.shape[0], self.bin_batch_size), :]
+        avg_ll = avg_ll[:, np.newaxis].repeat(F_B.shape[1], axis=1)
+        self.dbin_m_ell = self._average(((F_B - self.bin_m)/self.bin_s), avg_ll, False)
+        self.dbin_s_ell = self._average((np.square((F_B - self.bin_m) / self.bin_s) - 1. / self.bin_s), avg_ll, False) / 2
 
     def rand_init_mog(self):
         super(StructureGP, self).rand_init_mog()
-        self.bin_m = np.random.uniform(low=.1, high=100., size=self.bin_m.shape[0])
-        self.bin_s = np.random.uniform(low=1, high=1, size=self.bin_s.shape[0])
+        self.bin_m = np.random.uniform(low=.1, high=0.2, size=self.bin_m.shape[0])
+        self.bin_s = np.random.uniform(low=.1, high=2, size=self.bin_s.shape[0])
 
     def _sigma(self, k, j, Kj, Aj, Kzx):
         """
@@ -125,8 +135,9 @@ class StructureGP(SAVIGP_SingleComponent):
         if n_samples is None:
             samples = self.binary_normal_samples
         else:
-            samples = np.random.normal(0, 1, n_samples * self.cond_likelihood.bin_dim) \
-            .reshape((self.cond_likelihood.bin_dim, n_samples))
+            samples = np.random.normal(0, 1, self.bin_batch_size * self.cond_likelihood.bin_dim) \
+            .reshape((self.cond_likelihood.bin_dim, self.bin_batch_size))
+
 
         return samples.T * np.sqrt(self.bin_s) + self.bin_m
 
