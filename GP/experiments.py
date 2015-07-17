@@ -147,7 +147,7 @@ class Experiments:
     def run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, run_id, num_inducing, num_samples,
                   sparsify_factor, to_optimize, trans_class, random_Z, logging_level, export_X,
                   latent_noise=0.001, opt_per_iter=None, max_iter=200, n_threads=1, model_image_file=None,
-                  xtol=1e-3, ftol=1e-5, partition_size=3000):
+                  xtol=1e-3, ftol=1e-5, partition_size=3000, save_model = True):
 
         if opt_per_iter is None:
             opt_per_iter = {'mog': 40, 'hyp': 40, 'll': 40}
@@ -194,6 +194,11 @@ class Experiments:
             opt_params = pickle.load(open(model_image_file + 'opt.dump'))
             current_iter = opt_params['current_iter']
 
+        if save_model:
+            callback = Experiments.opt_callback(folder_name)
+        else:
+            callback = None
+
         if model_image:
             logger.info('loaded model - iteration started from: ' + str(opt_params['current_iter']) +
                         ' Obj fun: ' + str(opt_params['obj_fun']) + ' fun evals: ' + str(opt_params['total_evals']))
@@ -206,7 +211,7 @@ class Experiments:
             m = StructureGP(Xtrain, Ytrain, num_inducing, cond_ll,
                                        kernel, num_samples, None, latent_noise, False, random_Z, n_threads=n_threads, image=model_image, partition_size=partition_size, logger = logger)
             _, timer_per_iter, total_time, tracker, total_evals = \
-                Optimizer.optimize_model(m, opt_max_fun_evals, logger, to_optimize, xtol, opt_per_iter, max_iter, ftol, Experiments.opt_callback(folder_name), current_iter)
+                Optimizer.optimize_model(m, opt_max_fun_evals, logger, to_optimize, xtol, opt_per_iter, max_iter, ftol, callback, current_iter)
 
         if method == 'mix1':
             m = SAVIGP_Diag(Xtrain, Ytrain, num_inducing, 1, cond_ll,
@@ -554,9 +559,10 @@ class Experiments:
             Experiments.run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, 1, num_inducing,
                                   num_samples, sparsify_factor, ['mog'], IdentityTransformation, True,
                                   config['log_level'], False,  latent_noise=0.001,
-                                  opt_per_iter={'mog': 10, 'hyp': 3},
+                                  opt_per_iter={'mog': 12, 'hyp': 3},
                                   max_iter=5, n_threads=1,
-                                  model_image_file=image))
+                                  model_image_file=image,
+                                  save_model=False))
 
     @staticmethod
     def sarcos_data(config):
