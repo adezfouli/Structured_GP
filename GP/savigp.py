@@ -19,6 +19,8 @@ class Configuration(Enum):
     HYPER = 'HYP'
     MoG = 'MOG'
     LL = 'LL'
+    BIN = 'BIN'
+    UNI = 'UNI'
 
 
 class SAVIGP(Model):
@@ -535,7 +537,10 @@ class SAVIGP(Model):
                     F[:, :, j] = mdot(norm_samples, chol_sigma[k,j].T)
                     F[:, :, j] = F[:, :, j] + mean_kj[k,j]
                 F_B = self.get_binary_sample()
-                cond_ll, grad_ll, total_ell, sum_ll = self.cond_likelihood.ll_F_Y(F, Y, F_B)
+                self.uni_mean = mean_kj
+                cond_ll, grad_ll, total_ell, sum_ll = self.cond_likelihood.ll_F_Y(F, Y, F_B, self,
+                                                                                  Configuration.UNI not in self.config_list,
+                                                                                  Configuration.BIN not in self.config_list)
                 self._update_bin_grad(F_B, sum_ll)
                 for j in range(self.num_latent_proc):
                     norm_samples = self.normal_samples[j, :, :X.shape[0]]

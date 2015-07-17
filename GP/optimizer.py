@@ -213,17 +213,31 @@ class Optimizer:
             while (max_iters is None) or current_iter < max_iters:
                 logger.info('iter started ' + str(current_iter))
                 if 'mog' in method:
-                    logger.info('mog params')
+                    logger.info('uni params')
                     model.set_configuration([
                         Configuration.MoG,
                         Configuration.ENTROPY,
                         Configuration.CROSS,
                         Configuration.ELL,
+                        Configuration.UNI
                     ])
                     d, tracker = Optimizer.BFGS(model, logger, max_fun=iters_per_opt['mog'])
                     # d = Optimizer.NLOPT(model, algorithm=nlopt.LD_LBFGS, verbose=verbose)
                     # d = Optimizer.SGD(model, alpha=1e-6, start=model.get_params(), max_iter=10, adaptive_alpha=False)
                     # d = Optimizer.general(model, verbose=verbose)
+                    obj_track += tracker
+                    total_evals += d['funcalls']
+
+
+                    logger.info('binary params')
+                    model.set_configuration([
+                        Configuration.MoG,
+                        Configuration.ENTROPY,
+                        Configuration.CROSS,
+                        Configuration.ELL,
+                        Configuration.BIN
+                    ])
+                    d, tracker = Optimizer.BFGS(model, logger, max_fun=iters_per_opt['mog'])
                     obj_track += tracker
                     total_evals += d['funcalls']
 

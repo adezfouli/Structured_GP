@@ -18,10 +18,11 @@ class StructureGP(SAVIGP_SingleComponent):
         self.A_cached = None
         self.bin_m = np.zeros(likelihood.bin_dim)
         self.bin_s = np.ones(likelihood.bin_dim)
-        self.bin_noise = 0.1
+        self.bin_noise = 1.0
         self.bin_kernel = np.eye(likelihood.bin_dim) * self.bin_noise
         logger.debug("bin noise: " + str(self.bin_noise))
         np.random.seed(12000)
+        self.bin_s = np.diagonal(self.bin_kernel)
 
         self.binary_normal_samples = np.random.normal(0, 1, n_samples * likelihood.bin_dim) \
             .reshape((likelihood.bin_dim, n_samples))
@@ -119,7 +120,11 @@ class StructureGP(SAVIGP_SingleComponent):
             bin_dM += self.dbin_m_ell
             bin_dL += self.dbin_s_ell * self.bin_s
 
-        self.grad_ll = np.hstack((self.grad_ll, bin_dM, bin_dL))
+        if Configuration.UNI not in self.config_list:
+            self.grad_ll = np.array([])
+
+        if Configuration.BIN in self.config_list:
+            self.grad_ll = np.hstack((self.grad_ll, bin_dM, bin_dL))
 
     def get_binary_sample(self, n_samples = None):
         if n_samples is None:
@@ -141,12 +146,22 @@ class StructureGP(SAVIGP_SingleComponent):
 
     def get_params(self):
         parent_params = super(StructureGP, self).get_params()
+        if Configuration.UNI not in self.config_list:
+            parent_params = np.array([])
+        if Configuration.BIN not in self.config_list:
+            return parent_params
         return np.hstack((parent_params, self.bin_m.copy(), np.log(self.bin_s.copy())))
 
     def set_params(self, p):
-        self.bin_s = np.exp(p[-self.bin_m.shape[0]:])
-        self.bin_m = p[-(self.bin_m.shape[0]+self.bin_s.shape[0]):-self.bin_m.shape[0]].copy()
-        super(StructureGP, self).set_params(p[:-(self.bin_m.shape[0]+self.bin_s.shape[0])])
+        if Configuration.BIN in self.config_list:
+            self.bin_s = np.exp(p[-self.bin_m.shape[0]:])
+            self.bin_m = p[-(self.bin_m.shape[0]+self.bin_s.shape[0]):-self.bin_m.shape[0]].copy()
+            if Configuration.UNI in self.config_list:
+                super(StructureGP, self).set_params(p[:-(self.bin_m.shape[0]+self.bin_s.shape[0])])
+            else:
+                self._update()
+        else:
+            super(StructureGP, self).set_params(p)
 
     def get_param_names(self):
         parent_names = super(StructureGP, self).get_param_names()
