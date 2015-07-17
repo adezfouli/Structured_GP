@@ -537,7 +537,7 @@ class Experiments:
         num_latent_proc = n_labels
         # kernel = [ExtRBF(Xtrain.shape[1], variance=1.0, lengthscale=np.array(100), ARD=False) for j in range(num_latent_proc)]
         # kernel = [ExtRBF(Xtrain.shape[1], lengthscale = 0.0005, ARD=False, variance=1) for j in range(num_latent_proc)]
-        kernel = [Linear(Xtrain.shape[1], ARD=False, variances=0.001) for j in range(num_latent_proc)]
+        kernel = [Linear(Xtrain.shape[1], ARD=False, variances=0.0005) for j in range(num_latent_proc)]
         # number of inducing points
         num_inducing = int(Xtrain.shape[0] * sparsify_factor)
         num_samples = 10000
