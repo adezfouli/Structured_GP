@@ -540,7 +540,8 @@ class Experiments:
         num_latent_proc = n_labels
         # kernel = [ExtRBF(Xtrain.shape[1], variance=1.0, lengthscale=np.array(100), ARD=False) for j in range(num_latent_proc)]
         # kernel = [ExtRBF(Xtrain.shape[1], lengthscale = 0.0005, ARD=False, variance=1) for j in range(num_latent_proc)]
-        kernel = [Linear(Xtrain.shape[1], ARD=False, variances=0.0005) for j in range(num_latent_proc)]
+        kernel_variance = 0.0005
+        kernel = [Linear(Xtrain.shape[1], ARD=False, variances= kernel_variance) for j in range(num_latent_proc)]
         # number of inducing points
         num_inducing = int(Xtrain.shape[0] * sparsify_factor)
         num_samples = 10000
@@ -565,7 +566,8 @@ class Experiments:
                                   opt_per_iter={'mog': 12, 'hyp': 3},
                                   max_iter=5, n_threads=1,
                                   model_image_file=image,
-                                  save_model=False))
+                                  save_model=False,
+                                  log_message=('joint sampling. kernel: ' + str(kernel_variance))))
 
     @staticmethod
     def sarcos_data(config):
