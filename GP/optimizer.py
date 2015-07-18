@@ -228,7 +228,7 @@ class Optimizer:
                     obj_track += tracker
                     total_evals += d['funcalls']
 
-
+                if 'bin' in method:
                     logger.info('binary params')
                     model.set_configuration([
                         Configuration.MoG,

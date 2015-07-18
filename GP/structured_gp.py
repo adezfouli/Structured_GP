@@ -16,13 +16,13 @@ class StructureGP(SAVIGP_SingleComponent):
                  config_list, latent_noise, is_exact_ell, inducing_on_Xs, n_threads=1, image=None, partition_size=3000, logger = None):
         self.seq_poses = likelihood.seq_poses
         self.A_cached = None
-        self.bin_m = np.zeros(likelihood.bin_dim)
+        self.bin_m = np.ones(likelihood.bin_dim)
         self.bin_s = np.ones(likelihood.bin_dim)
         self.bin_noise = 10.0
         self.bin_kernel = np.eye(likelihood.bin_dim) * self.bin_noise
         logger.debug("bin noise: " + str(self.bin_noise))
         np.random.seed(12000)
-        self.bin_s = np.diagonal(self.bin_kernel)
+        # self.bin_s = np.diagonal(self.bin_kernel)
 
         self.binary_normal_samples = np.random.normal(0, 1, n_samples * likelihood.bin_dim) \
             .reshape((likelihood.bin_dim, n_samples))
