@@ -431,15 +431,15 @@ class StructLL(Likelihood):
         sum_ll = np.zeros((F.shape[0]))
         for s in range(F.shape[0]):
             for n in range(self.dataset.N):
-                if not fix_unaries:
-                    unaries = F[s, self.seq_poses[n]: self.seq_poses[n+1], 0:self.dataset.n_labels]
-                else:
-                    unaries = model.uni_mean[0].T[self.seq_poses[n]: self.seq_poses[n+1], 0:self.dataset.n_labels]
-
-                if not fix_binaries:
-                    binaries = b_samples[s].reshape((self.labels, self.labels))
-                else:
-                    binaries = model.bin_m.reshape((self.labels, self.labels))
+                # if not fix_unaries:
+                unaries = F[s, self.seq_poses[n]: self.seq_poses[n+1], 0:self.dataset.n_labels]
+                # else:
+                #     unaries = model.uni_mean[0].T[self.seq_poses[n]: self.seq_poses[n+1], 0:self.dataset.n_labels]
+                #
+                # if not fix_binaries:
+                binaries = b_samples[s].reshape((self.labels, self.labels))
+                # else:
+                #     binaries = model.bin_m.reshape((self.labels, self.labels))
                 ll_n = log_likelihood_function_numba(unaries, binaries, self.dataset.Y[n],
                                                      self.dataset.object_size[n], self.dataset.n_labels)
                 ll[s, self.seq_poses[n]: self.seq_poses[n+1]] = ll_n

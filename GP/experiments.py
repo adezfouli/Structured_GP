@@ -147,12 +147,15 @@ class Experiments:
     def run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, run_id, num_inducing, num_samples,
                   sparsify_factor, to_optimize, trans_class, random_Z, logging_level, export_X,
                   latent_noise=0.001, opt_per_iter=None, max_iter=200, n_threads=1, model_image_file=None,
-                  xtol=1e-3, ftol=1e-5, partition_size=3000, save_model = True):
+                  xtol=1e-3, ftol=1e-5, partition_size=3000, save_model = True, log_message = ''):
 
         if opt_per_iter is None:
             opt_per_iter = {'mog': 40, 'hyp': 40, 'll': 40}
         folder_name = name + '_' + Experiments.get_ID()
         logger = Experiments.get_logger(folder_name, logging_level)
+
+        logger.info(log_message)
+
         transformer = trans_class.get_transformation(Ytrain, Xtrain)
         Ytrain = transformer.transform_Y(Ytrain)
         Ytest = transformer.transform_Y(Ytest)
