@@ -563,11 +563,11 @@ class Experiments:
             Experiments.run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, 1, num_inducing,
                                   num_samples, sparsify_factor, ['mog'], IdentityTransformation, True,
                                   config['log_level'], False,  latent_noise=0.001,
-                                  opt_per_iter={'mog': 30, 'hyp': 3},
+                                  opt_per_iter={'mog': 60, 'hyp': 3},
                                   max_iter=1, n_threads=1,
                                   model_image_file=image,
                                   save_model=False,
-                                  log_message=('30 opt only uni iter 1: ' + str(kernel_variance))))
+                                  log_message=('60 opt only uni iter 1: ' + str(kernel_variance))))
 
     @staticmethod
     def sarcos_data(config):
