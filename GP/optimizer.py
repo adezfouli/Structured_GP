@@ -229,17 +229,17 @@ class Optimizer:
                     total_evals += d['funcalls']
 
 
-                    # logger.info('binary params')
-                    # model.set_configuration([
-                    #     Configuration.MoG,
-                    #     Configuration.ENTROPY,
-                    #     Configuration.CROSS,
-                    #     Configuration.ELL,
-                    #     Configuration.BIN
-                    # ])
-                    # d, tracker = Optimizer.BFGS(model, logger, max_fun=iters_per_opt['mog'])
-                    # obj_track += tracker
-                    # total_evals += d['funcalls']
+                    logger.info('binary params')
+                    model.set_configuration([
+                        Configuration.MoG,
+                        Configuration.ENTROPY,
+                        Configuration.CROSS,
+                        Configuration.ELL,
+                        Configuration.BIN
+                    ])
+                    d, tracker = Optimizer.BFGS(model, logger, max_fun=iters_per_opt['mog'])
+                    obj_track += tracker
+                    total_evals += d['funcalls']
 
                 if callback is not None:
                     logger.info('callback...')

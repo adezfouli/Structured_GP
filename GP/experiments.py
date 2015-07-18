@@ -540,7 +540,7 @@ class Experiments:
         num_latent_proc = n_labels
         # kernel = [ExtRBF(Xtrain.shape[1], variance=1.0, lengthscale=np.array(100), ARD=False) for j in range(num_latent_proc)]
         # kernel = [ExtRBF(Xtrain.shape[1], lengthscale = 0.0005, ARD=False, variance=1) for j in range(num_latent_proc)]
-        kernel_variance = 0.0005
+        kernel_variance = 0.0001
         kernel = [Linear(Xtrain.shape[1], ARD=False, variances= kernel_variance) for j in range(num_latent_proc)]
         # number of inducing points
         num_inducing = int(Xtrain.shape[0] * sparsify_factor)
@@ -563,8 +563,8 @@ class Experiments:
             Experiments.run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, 1, num_inducing,
                                   num_samples, sparsify_factor, ['mog'], IdentityTransformation, True,
                                   config['log_level'], False,  latent_noise=0.001,
-                                  opt_per_iter={'mog': 60, 'hyp': 3},
-                                  max_iter=1, n_threads=1,
+                                  opt_per_iter={'mog': 15, 'hyp': 3},
+                                  max_iter=4, n_threads=1,
                                   model_image_file=image,
                                   save_model=False,
                                   log_message=('60 opt only uni iter 1: ' + str(kernel_variance))))
