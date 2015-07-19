@@ -567,7 +567,7 @@ class Experiments:
                                   max_iter=1, n_threads=1,
                                   model_image_file=image,
                                   save_model=False,
-                                  log_message=('opt uni bin - reduced bin: ' + str(kernel_variance))))
+                                  log_message=('opt uni- fixed binary latent: ' + str(kernel_variance))))
 
     @staticmethod
     def sarcos_data(config):
