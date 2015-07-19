@@ -567,7 +567,7 @@ class Experiments:
                                   max_iter=2, n_threads=1,
                                   model_image_file=image,
                                   save_model=False,
-                                  log_message=('30 opt only uni iter 1 - zero binary mean: ' + str(kernel_variance))))
+                                  log_message=('30 opt uni bin - 30000 sampl - 0.0001 zero bin: ' + str(kernel_variance))))
 
     @staticmethod
     def sarcos_data(config):
