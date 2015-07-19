@@ -32,8 +32,9 @@ class StructureGP(SAVIGP_SingleComponent):
                                           is_exact_ell, inducing_on_Xs, n_threads, image, partition_size, logger)
 
     def _update_bin_grad(self, F_B, sum_ll):
-        self.dbin_m_ell = (((F_B - self.bin_m)/self.bin_s).T * sum_ll).mean(axis=1)
-        self.dbin_s_ell = ((np.square((F_B - self.bin_m) / self.bin_s) - 1. / self.bin_s).T * sum_ll).mean(axis=1) / 2
+        sum_ll = sum_ll[:, np.newaxis].repeat(F_B.shape[1], 1)
+        self.dbin_m_ell = self._average(((F_B - self.bin_m)/self.bin_s), sum_ll, False)
+        self.dbin_s_ell = self._average((np.square((F_B - self.bin_m) / self.bin_s) - 1. / self.bin_s),  sum_ll, False) / 2
 
     def rand_init_mog(self):
         super(StructureGP, self).rand_init_mog()
