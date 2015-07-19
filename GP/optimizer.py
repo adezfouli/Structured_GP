@@ -237,7 +237,7 @@ class Optimizer:
                         Configuration.ELL,
                         Configuration.BIN
                     ])
-                    d, tracker = Optimizer.BFGS(model, logger, max_fun=iters_per_opt['mog'])
+                    d, tracker = Optimizer.BFGS(model, logger, max_fun=iters_per_opt['bin'])
                     obj_track += tracker
                     total_evals += d['funcalls']
 

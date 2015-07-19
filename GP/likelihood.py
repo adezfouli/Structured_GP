@@ -415,7 +415,7 @@ class StructLL(Likelihood):
 
         self.seq_poses = self.seq_poses.astype(int)
         self.test_seq_poses = self.test_seq_poses.astype(int)
-        self.n_samples = 20000
+        self.n_samples = 30000
         self.dim = self.dataset.n_labels + self.dataset.n_labels ** 2
         self.normal_samples = np.random.normal(0, 1, self.n_samples * self.dim) \
             .reshape((self.dim, self.n_samples))
