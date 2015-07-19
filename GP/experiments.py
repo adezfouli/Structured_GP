@@ -561,13 +561,13 @@ class Experiments:
         Ytrain[np.arange(Xtrain.shape[0]), Ytrain_labels] = 1
         names.append(
             Experiments.run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, 1, num_inducing,
-                                  num_samples, sparsify_factor, ['mog'], IdentityTransformation, True,
+                                  num_samples, sparsify_factor, ['mog', 'bin'], IdentityTransformation, True,
                                   config['log_level'], False,  latent_noise=0.001,
-                                  opt_per_iter={'mog': 30, 'bin': 30},
-                                  max_iter=2, n_threads=1,
+                                  opt_per_iter={'mog': 30, 'bin': 15},
+                                  max_iter=1, n_threads=1,
                                   model_image_file=image,
                                   save_model=False,
-                                  log_message=('30 opt uni bin - 30000 sampl - 0.0001 zero bin: ' + str(kernel_variance))))
+                                  log_message=('opt uni bin - 30000 sampl - 0.0001 zero bin: ' + str(kernel_variance))))
 
     @staticmethod
     def sarcos_data(config):
