@@ -1,4 +1,5 @@
 import logging
+import time
 from experiments import Experiments
 from plot_results import PlotOutput
 from multiprocessing.pool import Pool
@@ -115,7 +116,9 @@ class ExperimentRunner:
 
     @staticmethod
     def struct_experiment():
-        Experiments.struct_data({'method': 'structured', 'sparse_factor': 1.0, 'run_id': 1, 'log_level': logging.DEBUG})
+        Experiments.struct_data({'method': 'structured', 'sparse_factor': 1.0, 'run_id': 1, 'log_level': logging.DEBUG,
+                                # 'image': '../results/struct_0_001/'
+                                 })
 
 
     @staticmethod
@@ -157,4 +160,5 @@ if __name__ == '__main__':
     ExperimentRunner.struct_experiment()
     # ExperimentRunner.sarcos_experiment()
 
-    # ExperimentRunner.plot()
+    time.sleep(5.5)
+    ExperimentRunner.plot()

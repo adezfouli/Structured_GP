@@ -415,7 +415,7 @@ class StructLL(Likelihood):
 
         self.seq_poses = self.seq_poses.astype(int)
         self.test_seq_poses = self.test_seq_poses.astype(int)
-        self.n_samples = 30000
+        self.n_samples = 20000
         self.dim = self.dataset.n_labels + self.dataset.n_labels ** 2
         self.normal_samples = np.random.normal(0, 1, self.n_samples * self.dim) \
             .reshape((self.dim, self.n_samples))
@@ -440,7 +440,7 @@ class StructLL(Likelihood):
                 binaries = b_samples[s].reshape((self.labels, self.labels))
                 # else:
                 #     binaries = model.bin_m.reshape((self.labels, self.labels))
-                binaries = np.zeros(binaries.shape)
+                # binaries = np.zeros(binaries.shape)
                 ll_n = log_likelihood_function_numba(unaries, binaries, self.dataset.Y[n],
                                                      self.dataset.object_size[n], self.dataset.n_labels)
                 ll[s, self.seq_poses[n]: self.seq_poses[n+1]] = ll_n
@@ -478,7 +478,7 @@ class StructLL(Likelihood):
             for n in range(self.test_dataset.N):
                 unaries = F[s, self.test_seq_poses[n]: self.test_seq_poses[n+1], 0:self.dataset.n_labels]
                 binaries = b_samples[s].reshape((self.labels, self.labels))
-                binaries = np.zeros(binaries.shape)
+                # binaries = np.zeros(binaries.shape)
 
                 Ys[s, self.test_seq_poses[n]: self.test_seq_poses[n+1], :] = \
                     marginals_function(unaries, binaries, self.test_dataset.object_size[n], self.test_dataset.n_labels)

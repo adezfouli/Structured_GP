@@ -82,7 +82,9 @@ class PlotOutput:
                     check_dir_exists('../graph_data/')
                     g.to_csv('../graph_data/' + name  + '_' + n + '_data.csv')
                     m = g.mean()
+                    print 'mean: ', m
                     errors = g.std()
+
                     ax =m.plot(kind='bar', yerr=errors, title=n)
                     patches, labels = ax.get_legend_handles_labels()
                     ax.legend(patches, labels, loc='lower center')
