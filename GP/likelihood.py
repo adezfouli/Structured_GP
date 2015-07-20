@@ -436,10 +436,10 @@ class StructLL(Likelihood):
                 # else:
                 #     unaries = model.uni_mean[0].T[self.seq_poses[n]: self.seq_poses[n+1], 0:self.dataset.n_labels]
                 #
-                if not fix_binaries:
-                  binaries = b_samples[s].reshape((self.labels, self.labels))
-                else:
-                    binaries = model.bin_m.reshape((self.labels, self.labels))
+                # if not fix_binaries:
+                binaries = b_samples[s].reshape((self.labels, self.labels))
+                # else:
+                #     binaries = model.bin_m.reshape((self.labels, self.labels))
                 # binaries = np.zeros(binaries.shape)
                 ll_n = log_likelihood_function_numba(unaries, binaries, self.dataset.Y[n],
                                                      self.dataset.object_size[n], self.dataset.n_labels)

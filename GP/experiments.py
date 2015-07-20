@@ -567,7 +567,7 @@ class Experiments:
                                   max_iter=1, n_threads=1,
                                   model_image_file=image,
                                   save_model=True,
-                                  log_message=('opt uni- fixed binary latent during training: ' + str(kernel_variance))))
+                                  log_message=('opt uni- samples binary latent during training: ' + str(kernel_variance))))
 
     @staticmethod
     def sarcos_data(config):
