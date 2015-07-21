@@ -85,9 +85,9 @@ class PlotOutput:
                     print 'mean: ', m
                     errors = g.std()
 
-                    ax =m.plot(kind='bar', yerr=errors, title=n)
-                    patches, labels = ax.get_legend_handles_labels()
-                    ax.legend(patches, labels, loc='lower center')
+                    # ax =m.plot(kind='bar', yerr=errors, title=n)
+                    # patches, labels = ax.get_legend_handles_labels()
+                    # ax.legend(patches, labels, loc='lower center')
                 if n in ['intensity']:
                     X = g.values()[0][:, 0]
                     true_data = DataFrame({'x': X, 'y': g.values()[0][:, 3]})
