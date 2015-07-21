@@ -18,7 +18,7 @@ class StructureGP(SAVIGP_SingleComponent):
         self.A_cached = None
         self.bin_m = np.zeros(likelihood.bin_dim)
         self.bin_s = np.ones(likelihood.bin_dim)
-        self.bin_noise = 0.001
+        self.bin_noise = 0.01
         self.bin_kernel = np.eye(likelihood.bin_dim) * self.bin_noise
         logger.debug("bin noise: " + str(self.bin_noise))
         np.random.seed(12000)
