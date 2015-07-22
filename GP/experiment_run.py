@@ -117,7 +117,7 @@ class ExperimentRunner:
     @staticmethod
     def struct_experiment():
         Experiments.struct_data({'method': 'structured', 'sparse_factor': 1.0, 'run_id': 1, 'log_level': logging.DEBUG,
-                                # 'image': '../results/str_uni/'
+                                'image': '../results/struct_HMSG82/'
                                  })
 
 
