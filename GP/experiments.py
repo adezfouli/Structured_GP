@@ -566,7 +566,7 @@ class Experiments:
                                   opt_per_iter={'mog': 35, 'bin': 15},
                                   max_iter=1, n_threads=1,
                                   model_image_file=image,
-                                  save_model=False,
+                                  save_model=True,
                                   log_message=('only bin: ' + str(kernel_variance))))
 
     @staticmethod
