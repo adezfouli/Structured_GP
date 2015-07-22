@@ -548,7 +548,7 @@ class Experiments:
 
         kernel_variance = 0.001
         bin_prior = 0.001
-        ini_bin_s = 1.0
+        ini_bin_s = 0.0001
 
         kernel = [Linear(Xtrain.shape[1], ARD=False, variances= kernel_variance) for j in range(num_latent_proc)]
         # number of inducing points
