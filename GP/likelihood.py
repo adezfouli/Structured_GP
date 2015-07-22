@@ -477,9 +477,9 @@ class StructLL(Likelihood):
         for s in range(F.shape[0]):
             for n in range(self.test_dataset.N):
                 unaries = F[s, self.test_seq_poses[n]: self.test_seq_poses[n+1], 0:self.dataset.n_labels]
-                # binaries = b_samples[s].reshape((self.labels, self.labels))
+                binaries = b_samples[s].reshape((self.labels, self.labels))
                 # binaries = np.zeros(binaries.shape)
-                binaries = model.bin_m.reshape((self.labels, self.labels))
+                # binaries = model.bin_m.reshape((self.labels, self.labels))
 
                 Ys[s, self.test_seq_poses[n]: self.test_seq_poses[n+1], :] = \
                     marginals_function(unaries, binaries, self.test_dataset.object_size[n], self.test_dataset.n_labels)
