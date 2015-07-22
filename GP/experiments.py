@@ -576,7 +576,7 @@ class Experiments:
                                   max_iter=1, n_threads=1,
                                   model_image_file=image,
                                   save_model=True,
-                                  log_message=('only bin: ' + str(kernel_variance)),
+                                  log_message=(str(kernel_variance)),
                                   bin_prior= bin_prior,
                                   init_bin_s=ini_bin_s
 
