@@ -13,12 +13,13 @@ from savigp_single_comp import SAVIGP_SingleComponent
 
 class StructureGP(SAVIGP_SingleComponent):
     def __init__(self, X, Y, num_inducing, likelihood, kernels, n_samples,
-                 config_list, latent_noise, is_exact_ell, inducing_on_Xs, n_threads=1, image=None, partition_size=3000, logger = None):
+                 config_list, latent_noise, is_exact_ell, inducing_on_Xs, n_threads=1, image=None, partition_size=3000, logger = None,
+                  bin_prior = 0.001, init_bin_s = 1):
         self.seq_poses = likelihood.seq_poses
         self.A_cached = None
         self.bin_m = np.zeros(likelihood.bin_dim)
-        self.bin_s = np.ones(likelihood.bin_dim) * 0.0001
-        self.bin_noise =0.001
+        self.bin_s = np.ones(likelihood.bin_dim) * init_bin_s
+        self.bin_noise = bin_prior
         self.bin_kernel = np.eye(likelihood.bin_dim) * self.bin_noise
         logger.debug("bin noise: " + str(self.bin_noise))
         np.random.seed(12000)

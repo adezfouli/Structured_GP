@@ -147,7 +147,8 @@ class Experiments:
     def run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, run_id, num_inducing, num_samples,
                   sparsify_factor, to_optimize, trans_class, random_Z, logging_level, export_X,
                   latent_noise=0.001, opt_per_iter=None, max_iter=200, n_threads=1, model_image_file=None,
-                  xtol=1e-3, ftol=1e-5, partition_size=3000, save_model = True, log_message = ''):
+                  xtol=1e-3, ftol=1e-5, partition_size=3000, save_model = True, log_message = '',
+                  bin_prior = 0.001, init_bin_s = 1.0):
 
         if opt_per_iter is None:
             opt_per_iter = {'mog': 40, 'hyp': 40, 'll': 40}
@@ -186,7 +187,9 @@ class Experiments:
                    'git_branch': git_branch,
                    'random_Z': random_Z,
                    'latent_noise:': latent_noise,
-                   'model_init': model_image_file
+                   'model_init': model_image_file,
+                   'bin_prior': bin_prior,
+                   'bin_init_s': init_bin_s
                    }
         logger.info('experiment started for:' + str(properties))
 
@@ -212,7 +215,9 @@ class Experiments:
                 Optimizer.optimize_model(m, opt_max_fun_evals, logger, to_optimize, xtol, opt_per_iter, max_iter, ftol, Experiments.opt_callback(folder_name), current_iter)
         if method == 'structured':
             m = StructureGP(Xtrain, Ytrain, num_inducing, cond_ll,
-                                       kernel, num_samples, None, latent_noise, False, random_Z, n_threads=n_threads, image=model_image, partition_size=partition_size, logger = logger)
+                                       kernel, num_samples, None, latent_noise, False, random_Z, n_threads=n_threads,
+                                       image=model_image, partition_size=partition_size, logger = logger, bin_prior= bin_prior,
+                                       init_bin_s=init_bin_s)
             _, timer_per_iter, total_time, tracker, total_evals = \
                 Optimizer.optimize_model(m, opt_max_fun_evals, logger, to_optimize, xtol, opt_per_iter, max_iter, ftol, callback, current_iter)
 
@@ -540,7 +545,11 @@ class Experiments:
         num_latent_proc = n_labels
         # kernel = [ExtRBF(Xtrain.shape[1], variance=1.0, lengthscale=np.array(100), ARD=False) for j in range(num_latent_proc)]
         # kernel = [ExtRBF(Xtrain.shape[1], lengthscale = 0.0005, ARD=False, variance=1) for j in range(num_latent_proc)]
+
         kernel_variance = 0.001
+        bin_prior = 0.001
+        ini_bin_s = 1.0
+
         kernel = [Linear(Xtrain.shape[1], ARD=False, variances= kernel_variance) for j in range(num_latent_proc)]
         # number of inducing points
         num_inducing = int(Xtrain.shape[0] * sparsify_factor)
@@ -567,7 +576,13 @@ class Experiments:
                                   max_iter=1, n_threads=1,
                                   model_image_file=image,
                                   save_model=True,
-                                  log_message=('only bin: ' + str(kernel_variance))))
+                                  log_message=('only bin: ' + str(kernel_variance)),
+                                  bin_prior= bin_prior,
+                                  init_bin_s=ini_bin_s
+
+                                  )
+
+        )
 
     @staticmethod
     def sarcos_data(config):
