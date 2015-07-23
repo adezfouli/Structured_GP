@@ -32,8 +32,8 @@ class Experiments:
     def get_logger(name, level):
         logger = logging.getLogger(name)
         logger.setLevel(level)
-        check_dir_exists(Experiments.get_logger_path())
-        fh = logging.FileHandler(Experiments.get_logger_path() + name + '.log')
+        check_dir_exists( Experiments.get_output_path() + name + '/')
+        fh = logging.FileHandler( Experiments.get_output_path() + name + '/' + name + '.log')
         fh.setLevel(logging.DEBUG)
         ch = logging.StreamHandler()
         ch.setLevel(logging.DEBUG)
@@ -573,7 +573,7 @@ class Experiments:
                                   num_samples, sparsify_factor, ['mog'], IdentityTransformation, True,
                                   config['log_level'], False,  latent_noise=0.001,
                                   opt_per_iter={'mog': 30, 'bin': 15},
-                                  max_iter=2, n_threads=1,
+                                  max_iter=1, n_threads=1,
                                   model_image_file=image,
                                   save_model=True,
                                   log_message=(str(kernel_variance)),

@@ -117,7 +117,7 @@ class ExperimentRunner:
     @staticmethod
     def struct_experiment():
         Experiments.struct_data({'method': 'structured', 'sparse_factor': 1.0, 'run_id': 1, 'log_level': logging.DEBUG,
-                                'image': '../results/struct_7T9FRZ/'
+                                # 'image': '../results/struct_7T9FRZ/'
                                  })
 
 
@@ -144,7 +144,7 @@ def run_config(config):
 
 
 if __name__ == '__main__':
-    logger = Experiments.get_logger('general_' + Experiments.get_ID(), logging.DEBUG)
+    # logger = Experiments.get_logger('general_' + Experiments.get_ID(), logging.DEBUG)
 
     # ExperimentRunner.run_parallel(3)
     # run_config_serial(ExperimentRunner.get_configs())

@@ -73,10 +73,14 @@ class PlotOutput:
                 for k in g.keys():
                     print k, 'n: ', graph_n[k]
                 if n in ['SSE', 'NLPD']:
-                    g= DataFrame(dict([(k,Series(v)) for k,v in g.iteritems()]))
-                    ax = g.plot(kind='box', title=n)
-                    check_dir_exists('../graph_data/')
-                    g.to_csv('../graph_data/' + name  + '_' + n + '_data.csv')
+                    try:
+                        g= DataFrame(dict([(k,Series(v)) for k,v in g.iteritems()]))
+                        ax = g.plot(kind='box', title=n)
+                        check_dir_exists('../graph_data/')
+                        g.to_csv('../graph_data/' + name  + '_' + n + '_data.csv')
+                    except:
+                        print 'error in graphs'
+                        pass
                 if n in ['ER']:
                     g= DataFrame(dict([(k,Series(v)) for k,v in g.iteritems()]))
                     check_dir_exists('../graph_data/')
@@ -85,9 +89,14 @@ class PlotOutput:
                     print 'mean: ', m
                     errors = g.std()
 
-                    # ax =m.plot(kind='bar', yerr=errors, title=n)
-                    # patches, labels = ax.get_legend_handles_labels()
-                    # ax.legend(patches, labels, loc='lower center')
+                    # for when it is running on linux
+                    try:
+                        ax =m.plot(kind='bar', yerr=errors, title=n)
+                        patches, labels = ax.get_legend_handles_labels()
+                        ax.legend(patches, labels, loc='lower center')
+                    except:
+                        print 'error in graphs'
+                        pass
                 if n in ['intensity']:
                     X = g.values()[0][:, 0]
                     true_data = DataFrame({'x': X, 'y': g.values()[0][:, 3]})
