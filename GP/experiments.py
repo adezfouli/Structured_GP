@@ -547,7 +547,7 @@ class Experiments:
         # kernel = [ExtRBF(Xtrain.shape[1], lengthscale = 0.0005, ARD=False, variance=1) for j in range(num_latent_proc)]
 
         kernel_variance = 0.001
-        bin_prior = 1
+        bin_prior = .1
         ini_bin_s = 0.0001
 
         kernel = [Linear(Xtrain.shape[1], ARD=False, variances= kernel_variance) for j in range(num_latent_proc)]
