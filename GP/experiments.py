@@ -547,8 +547,8 @@ class Experiments:
         # kernel = [ExtRBF(Xtrain.shape[1], lengthscale = 0.0005, ARD=False, variance=1) for j in range(num_latent_proc)]
 
         kernel_variance = 0.001
-        bin_prior = 100.0
-        ini_bin_s = 0.0001
+        bin_prior = 0.001
+        ini_bin_s = 1.0
 
         kernel = [Linear(Xtrain.shape[1], ARD=False, variances= kernel_variance) for j in range(num_latent_proc)]
         # number of inducing points
@@ -573,7 +573,7 @@ class Experiments:
                                   num_samples, sparsify_factor, ['bin'], IdentityTransformation, True,
                                   config['log_level'], False,  latent_noise=0.001,
                                   opt_per_iter={'mog': 30, 'bin': 30},
-                                  max_iter=4, n_threads=1,
+                                  max_iter=3, n_threads=1,
                                   model_image_file=image,
                                   save_model=False,
                                   log_message=(str(kernel_variance)),
