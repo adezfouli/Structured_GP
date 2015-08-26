@@ -253,7 +253,7 @@ class StructureGP(SAVIGP_SingleComponent):
         predicted_var = np.empty((Xs.shape[0], self.num_mog_comp, self.cond_likelihood.output_dim()))
         nlpd = None
         if not (Ys is None):
-            nlpd = np.empty((Xs.shape[0], self.num_mog_comp))
+            nlpd = np.empty((Xs.shape[0], self.cond_likelihood.nlpd_dim(), self.num_mog_comp))
 
         mean_kj = np.empty((self.num_mog_comp, self.num_latent_proc, Xs.shape[0]))
         sigma_kj = np.empty((self.num_mog_comp, self.num_latent_proc, Xs.shape[0], Xs.shape[0]))

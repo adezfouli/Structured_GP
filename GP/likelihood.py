@@ -622,7 +622,7 @@ class StructLL(Likelihood):
                 Ys[s, self.test_seq_poses[n]: self.test_seq_poses[n+1], :] = \
                     marginals_function(unaries, b_samples[s].reshape((self.labels, self.labels)), self.test_dataset.object_size[n], self.test_dataset.n_labels)
 
-        return Ys.mean(axis=0), None, Ys.mean(axis=0)[:, 0]
+        return Ys.mean(axis=0), None, Ys.mean(axis=0)[:, 0][:, np.newaxis]
 
     def output_dim(self):
         return self.dataset.n_labels
