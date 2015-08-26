@@ -8,7 +8,7 @@ from mog_single_comp import MoG_SingleComponent
 import numpy as np
 
 
-class SAVIGP_SingleComponent(SAVIGP_SGP):
+class SAVIGP_SingleComponent(SAVIGP):
     """
     Implementation of SAVIGP in the case that the posterior covariance is full, and the mixture has only one component.
     """

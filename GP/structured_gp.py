@@ -31,6 +31,106 @@ class StructureGP(SAVIGP_SingleComponent):
         self.dbin_m_ell = (((F_B - self.bin_m)/self.bin_s).T * sum_ll).mean(axis=1)
         self.dbin_s_ell = ((np.square((F_B - self.bin_m) / self.bin_s) - 1. / self.bin_s).T * sum_ll).mean(axis=1) / 2
 
+    def _Kdiag(self, p_X, K, A, j, seq_poses):
+        """
+        calculating diagonal terms of K_tilda for latent process j (eq 4)
+        """
+        pxs = np.split(p_X, seq_poses[1:-1], axis=0)
+        return block_diag(*tuple([self.kernels_latent[j].K(psx_i) for psx_i in pxs])) - mdot(A, K)
+
+
+    def _get_A_K(self, p_X, seq_poses):
+        A = np.empty((self.num_latent_proc, len(p_X), self.num_inducing))
+        K = np.empty((self.num_latent_proc, len(p_X), len(p_X)))
+        Kzx = np.empty((self.num_latent_proc, self.num_inducing, p_X.shape[0]))
+        for j in range(self.num_latent_proc):
+            Kzx[j, :, :] = self.kernels_latent[j].K(self.Z[j, :, :], p_X)
+            A[j] = self._A(j, Kzx[j, :, :])
+            K[j] = self._Kdiag(p_X, Kzx[j, :, :], A[j], j, seq_poses)
+        return A, Kzx, K
+
+
+    def _parition_ell(self, X, Y):
+        """
+        calculating expected log-likelihood, and it's derivatives
+        :returns ell, normal ell, dell / dm, dell / ds, dell/dpi
+        """
+
+        # print 'ell started'
+        total_ell = self.cached_ell
+        d_ell_dm = np.zeros((self.num_mog_comp, self.num_latent_proc, self.num_inducing))
+        d_ell_ds = np.zeros((self.num_mog_comp, self.num_latent_proc) + self.MoG.S_dim())
+        d_ell_dPi = np.zeros(self.num_mog_comp)
+        if Configuration.HYPER in self.config_list:
+            d_ell_d_hyper = np.zeros((self.num_latent_proc, self.num_hyper_params))
+        else:
+            d_ell_d_hyper = 0
+
+        if Configuration.LL in self.config_list:
+            d_ell_d_ll = np.zeros(self.num_like_params)
+        else:
+            d_ell_d_ll = 0
+
+        # self.rand_init_mog()
+        if Configuration.MoG in self.config_list or \
+            Configuration.LL in self.config_list or \
+            self.cached_ell is None or \
+            self.calculate_dhyper():
+            total_ell = 0
+            if self.A_cached is None:
+                self.A_cached, self.Kzx_cached, self.K_cached = self._get_A_K(X, self.seq_poses)
+            A = self.A_cached
+            Kzx = self.Kzx_cached
+            K = self.K_cached
+            mean_kj = np.empty((self.num_mog_comp, self.num_latent_proc, X.shape[0]))
+            sigma_kj = np.empty((self.num_mog_comp, self.num_latent_proc, X.shape[0], X.shape[0]))
+            chol_sigma = np.empty((self.num_mog_comp, self.num_latent_proc, X.shape[0], X.shape[0]))
+            chol_sigma_inv = np.empty((self.num_mog_comp, self.num_latent_proc, X.shape[0], X.shape[0]))
+            sigma_inv = np.empty((self.num_mog_comp, self.num_latent_proc, X.shape[0], X.shape[0]))
+            F = np.empty((self.n_samples, X.shape[0], self.num_latent_proc))
+            for k in range(self.num_mog_comp):
+                for j in range(self.num_latent_proc):
+                    norm_samples = self.normal_samples[j, :, :X.shape[0]]
+                    mean_kj[k,j] = self._b(k, j, A[j], Kzx[j].T)
+                    sigma_kj[k,j] = self._sigma(k, j, K[j], A[j], Kzx[j].T)
+                    chol_sigma[k,j], chol_sigma_inv[k,j], sigma_inv[k,j] = self._chol_sigma(sigma_kj[k,j])
+                    F[:, :, j] = mdot(norm_samples, chol_sigma[k,j].T)
+                    F[:, :, j] = F[:, :, j] + mean_kj[k,j]
+                F_B = self.get_binary_sample()
+                cond_ll, grad_ll, total_ell, sum_ll = self.cond_likelihood.ll_F_Y(F, Y, F_B)
+                self._update_bin_grad(F_B, sum_ll)
+                for j in range(self.num_latent_proc):
+                    norm_samples = self.normal_samples[j, :, :X.shape[0]]
+                    sfb = mdot(norm_samples, chol_sigma_inv[k,j]) # sigma^ -1 (f - b)
+                    m = self._average(cond_ll, sfb, True)
+                    d_ell_dm[k,j] = self._proj_m_grad(j, mdot(m, Kzx[j].T)) * self.MoG.pi[k]
+                    from structured_gp import StructureGP
+                    d_ell_ds[k,j] = StructureGP._struct_dell_ds(self, k, j, cond_ll, A, sigma_inv[k,j], sfb)
+                    if self.calculate_dhyper():
+                        ds_dhyp = self._dsigma_dhyp(j, k, A[j], Kzx, X)
+                        db_dhyp = self._db_dhyp(j, k, A[j], X)
+                        for h in range(self.num_hyper_params):
+                            d_ell_d_hyper[j, h] += -1./2 * self.MoG.pi[k] * (
+                                                self._average(cond_ll,
+                                                np.ones(cond_ll.shape) / sigma_kj[k, j] * ds_dhyp[:, h] +
+                                                -2. * norm_samples / np.sqrt(sigma_kj[k,j]) * db_dhyp[:, h]
+                                                - np.square(norm_samples)/sigma_kj[k, j] * ds_dhyp[:, h], True)).sum()
+
+                sum_cond_ll = cond_ll.sum() / self.n_samples
+                d_ell_dPi[k] = sum_cond_ll
+
+                if Configuration.LL in self.config_list:
+                    d_ell_d_ll += self.MoG.pi[k] * grad_ll.sum() / self.n_samples
+
+            if self.is_exact_ell:
+                total_ell = 0
+                for n in range(len(X)):
+                    for k in range(self.num_mog_comp):
+                            total_ell += self.cond_likelihood.ell(np.array(mean_kj[k, :, n]), np.array(sigma_kj[k, :, n]), Y[n, :]) * self.MoG.pi[k]
+
+        return total_ell, d_ell_dm, d_ell_ds, d_ell_dPi, d_ell_d_hyper, d_ell_d_ll, None
+
+
     def rand_init_mog(self):
         super(StructureGP, self).rand_init_mog()
         self.bin_m = np.random.uniform(low=.1, high=100., size=self.bin_m.shape[0])
