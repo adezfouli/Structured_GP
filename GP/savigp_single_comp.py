@@ -1,5 +1,3 @@
-from savigp_sgp import SAVIGP_SGP
-
 __author__ = 'AT'
 
 from savigp import SAVIGP
