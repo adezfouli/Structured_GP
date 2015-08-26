@@ -150,6 +150,10 @@ class ExperimentRunner:
                                 })
 
     @staticmethod
+    def struct_experiment():
+        ExperimentSetup.struct_data({'method': 'sgp', 'sparse_factor': 1.0, 'run_id': 1, 'log_level': logging.DEBUG})
+
+    @staticmethod
     def plot():
         PlotOutput.plot_output_all('boston', ModelLearn.get_output_path(),
                                    lambda x: x['method'] == 'full', False)
@@ -185,9 +189,10 @@ if __name__ == '__main__':
     # ExperimentRunner.mining_experiment()
     # ExperimentRunner.abalone_experiment()
     # ExperimentRunner.mnist_binary_inducing_experiment()
-    ExperimentRunner.mnist_binary_experiment()
+    # ExperimentRunner.mnist_binary_experiment()
     # ExperimentRunner.sarcos_all_joins_experiment()
     # ExperimentRunner.sarcos_experiment()
+    ExperimentRunner.struct_experiment()
 
 
     # uncomment to plots the outputs in results folder

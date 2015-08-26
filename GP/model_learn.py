@@ -4,6 +4,7 @@ import csv
 
 import GPy
 import numpy as np
+from structured_gp import StructureGP
 
 from savigp import SAVIGP
 from savigp_diag import SAVIGP_Diag
@@ -421,6 +422,15 @@ class ModelLearn:
         if model_image:
             logger.info('loaded model - iteration started from: ' + str(opt_params['current_iter']) +
                         ' Obj fun: ' + str(opt_params['obj_fun']) + ' fun evals: ' + str(opt_params['total_evals']))
+
+        if method == 'sgp':
+            m = StructureGP(Xtrain, Ytrain, num_inducing, cond_ll,
+                                       kernel, num_samples, None, latent_noise, False, random_Z, n_threads=n_threads,
+                                       image=model_image, partition_size=partition_size)
+            _, timer_per_iter, total_time, tracker, total_evals = \
+                Optimizer.optimize_model(m, opt_max_fun_evals, logger, to_optimize, xtol, opt_per_iter, max_iter, ftol,
+                                         ModelLearn.opt_callback(folder_name), current_iter)
+
         if method == 'full':
             m = SAVIGP_SingleComponent(Xtrain, Ytrain, num_inducing, cond_ll,
                                        kernel, num_samples, None, latent_noise, False, random_Z, n_threads=n_threads,

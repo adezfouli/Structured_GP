@@ -1,3 +1,5 @@
+from savigp_sgp import SAVIGP_SGP
+
 __author__ = 'AT'
 
 from savigp import SAVIGP
@@ -6,7 +8,7 @@ from mog_single_comp import MoG_SingleComponent
 import numpy as np
 
 
-class SAVIGP_SingleComponent(SAVIGP):
+class SAVIGP_SingleComponent(SAVIGP_SGP):
     """
     Implementation of SAVIGP in the case that the posterior covariance is full, and the mixture has only one component.
     """
@@ -36,7 +38,7 @@ class SAVIGP_SingleComponent(SAVIGP):
 
     def _update(self):
         self.update_N_z()
-        SAVIGP._update(self)
+        super(SAVIGP_SingleComponent, self)._update()
 
     def mdot_Aj(self, Ajn, Kxnz):
         return mdot(Ajn.T, Ajn)

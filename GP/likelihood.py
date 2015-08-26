@@ -1,3 +1,5 @@
+from GPstruct.prepare_from_data_chain import log_likelihood_function_numba, marginals_function
+
 __author__ = 'AT'
 
 import math
@@ -542,3 +544,85 @@ class CogLL(Likelihood):
     def nlpd_dim(self):
         return self.P + 1
 
+
+class StructLL(Likelihood):
+    def __init__(self, ll_func, dataset, test_dataset):
+        Likelihood.__init__(self)
+        self.ll_func = ll_func
+        self.dataset = dataset
+        self.test_dataset = test_dataset
+        seq_size = dataset.object_size
+        last_pos = 0
+        self.labels = self.dataset.n_labels
+        self.seq_poses = np.empty((seq_size.shape[0] + 1))
+        for n in range(seq_size.shape[0]):
+            last_pos += seq_size[n]
+            self.seq_poses[n+1] = last_pos
+        last_pos = 0
+        self.test_seq_poses = np.empty((test_dataset.object_size.shape[0] + 1))
+        for n in range(test_dataset.object_size.shape[0]):
+            last_pos += test_dataset.object_size[n]
+            self.test_seq_poses[n+1] = last_pos
+
+        self.seq_poses = self.seq_poses.astype(int)
+        self.test_seq_poses = self.test_seq_poses.astype(int)
+        self.n_samples = 4000
+        self.dim = self.dataset.n_labels + self.dataset.n_labels ** 2
+        self.normal_samples = np.random.normal(0, 1, self.n_samples * self.dim) \
+            .reshape((self.dim, self.n_samples))
+        self.bin_dim = self.dataset.n_labels ** 2
+        self.uni_dim = self.dataset.n_labels
+        self.normal_samples = np.random.normal(0, 1, self.n_samples * self.dim) \
+            .reshape((self.dim, self.n_samples))
+
+    def ll_F_Y(self, F, Y, b_samples):
+
+        ll = np.empty((F.shape[0], self.dataset.object_size.sum()))
+        total_ll = 0
+        sum_ll = np.zeros((F.shape[0]))
+        for s in range(F.shape[0]):
+            for n in range(self.dataset.N):
+                unaries = F[s, self.seq_poses[n]: self.seq_poses[n+1], 0:self.dataset.n_labels]
+                ll_n = log_likelihood_function_numba(unaries, b_samples[s].reshape((self.labels, self.labels)), self.dataset.Y[n],
+                                                     self.dataset.object_size[n], self.dataset.n_labels)
+                ll[s, self.seq_poses[n]: self.seq_poses[n+1]] = ll_n
+                total_ll += ll_n
+                sum_ll[s] += ll_n
+
+        return ll, None, total_ll / F.shape[0], sum_ll
+
+    def set_params(self, p):
+        if p.shape[0] != 0:
+            raise Exception("struct ll function does not have free parameters")
+
+    def get_params(self):
+        return []
+
+    def get_num_params(self):
+        return 0
+
+    def predict(self, mu, chol_sigma, Ys, model=None):
+
+        self.normal_samples = np.random.normal(0, 1, self.n_samples * self.uni_dim * mu.shape[0]) \
+            .reshape((self.uni_dim, self.n_samples, mu.shape[0]))
+
+        F = np.empty((self.n_samples, mu.shape[0], self.uni_dim))
+        for j in range(self.uni_dim):
+            norm_samples = self.normal_samples[j, :, :mu.shape[0]]
+            F[:, :, j] = mdot(norm_samples, chol_sigma[:, :, j].T)
+            F[:, :, j] = F[:, :, j] + mu[:,j]
+
+        # F = L * N + mu
+
+        Ys= np.empty((self.n_samples, mu.shape[0], self.test_dataset.n_labels))
+        b_samples = model.get_binary_sample(F.shape[0])
+        for s in range(F.shape[0]):
+            for n in range(self.test_dataset.N):
+                unaries = F[s, self.test_seq_poses[n]: self.test_seq_poses[n+1], 0:self.dataset.n_labels]
+                Ys[s, self.test_seq_poses[n]: self.test_seq_poses[n+1], :] = \
+                    marginals_function(unaries, b_samples[s].reshape((self.labels, self.labels)), self.test_dataset.object_size[n], self.test_dataset.n_labels)
+
+        return Ys.mean(axis=0), None, Ys.mean(axis=0)[:, 0]
+
+    def output_dim(self):
+        return self.dataset.n_labels

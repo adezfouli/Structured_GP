@@ -1,4 +1,6 @@
+from GPy.kern import Linear
 import Image
+from gpstruct_wrapper import gpstruct_wrapper
 
 __author__ = 'AT'
 
@@ -515,6 +517,59 @@ class ExperimentSetup:
                                  ftol=10,
                                  n_threads=n_threads,
                                  model_image_file=image))
+
+
+    @staticmethod
+    def struct_data(config):
+        method = config['method']
+        sparsify_factor = config['sparse_factor']
+        np.random.seed(12000)
+
+        (ll_train,
+        posterior_marginals_test,
+        compute_error_nlm,
+        ll_test,
+        average_marginals,
+        write_marginals,
+        read_marginals,
+        n_labels,
+        Xtrain,
+        Xtest,
+         train_dataset,
+         test_dataset)  = gpstruct_wrapper()
+        name = 'struct'
+        n_latent_processes = n_labels + 1
+
+        Xtrain = np.array(Xtrain.todense())
+        Xtest = np.array(Xtest.todense())
+        num_latent_proc = n_labels
+        # kernel = [ExtRBF(Xtrain.shape[1], variance=1.0, lengthscale=np.array(100), ARD=False) for j in range(num_latent_proc)]
+        # kernel = [ExtRBF(Xtrain.shape[1], lengthscale = 0.0005, ARD=False, variance=1) for j in range(num_latent_proc)]
+        kernel = [Linear(Xtrain.shape[1], ARD=False, variances=0.001) for j in range(num_latent_proc)]
+        # number of inducing points
+        num_inducing = int(Xtrain.shape[0] * sparsify_factor)
+        num_samples = 10000
+        cond_ll = StructLL(ll_train, train_dataset, test_dataset)
+        names = []
+        image = None
+        if 'image' in config.keys():
+            image = config['image']
+
+
+        Ytest_labels = np.hstack(np.array(test_dataset.Y))
+        Ytest = np.zeros((Xtest.shape[0], test_dataset.n_labels))
+        Ytest[np.arange(Xtest.shape[0]), Ytest_labels] = 1
+
+        Ytrain_labels = np.hstack(np.array(train_dataset.Y))
+        Ytrain = np.zeros((Xtrain.shape[0], train_dataset.n_labels))
+        Ytrain[np.arange(Xtrain.shape[0]), Ytrain_labels] = 1
+        names.append(
+            ModelLearn.run_model(Xtest, Xtrain, Ytest, Ytrain, cond_ll, kernel, method, name, 1, num_inducing,
+                                  num_samples, sparsify_factor, ['mog'], IdentityTransformation, True,
+                                  config['log_level'], False,  latent_noise=0.001,
+                                  opt_per_iter={'mog': 60},
+                                  max_iter=1, n_threads=1,
+                                  model_image_file=image))
 
 
     @staticmethod
